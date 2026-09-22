@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en-US">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3241,7 +3241,7 @@ const TRANSLATIONS = {
 };
 
 const LOCALE_STORAGE_KEY = 'cloudssh_locale';
-let locale = 'zh-CN';
+let locale = 'en-US';
 
 function normalizeLocale(value) {
   if (!value) return null;
@@ -3253,7 +3253,7 @@ function normalizeLocale(value) {
 }
 
 function t(key, params = {}) {
-  const template = TRANSLATIONS[locale][key] || TRANSLATIONS['zh-CN'][key] || key;
+  const template = TRANSLATIONS[locale][key] || TRANSLATIONS['en-US'][key] || key;
   return template.replace(/\{(\w+)\}/g, (match, name) =>
     Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match
   );
@@ -3264,8 +3264,7 @@ function resolveInitialLocale() {
   try { stored = localStorage.getItem(LOCALE_STORAGE_KEY); } catch { /* storage may be unavailable */ }
   return normalizeLocale(new URLSearchParams(window.location.search).get('lang'))
     || normalizeLocale(stored)
-    || (navigator.languages || [navigator.language]).map(normalizeLocale).find(Boolean)
-    || 'zh-CN';
+    || 'en-US';
 }
 
 function translateDocument() {
@@ -4244,6 +4243,7 @@ document.querySelectorAll('[data-current-year]').forEach((element) => {
 
 // Init
 locale = resolveInitialLocale();
+try { localStorage.setItem(LOCALE_STORAGE_KEY, locale); } catch { /* storage may be unavailable */ }
 translateDocument();
 initTheme('cyberpunk');
 </script>

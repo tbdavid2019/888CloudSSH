@@ -12,7 +12,7 @@ describe('国际化核心', () => {
     expect(Object.keys(zhTW).sort()).toEqual(Object.keys(zhCN).sort());
   });
 
-  it('按 URL、持久化设置、浏览器语言的优先级解析语言', () => {
+  it('按 URL、持久化设置解析语言，未设置时默认为英文', () => {
     expect(resolveLocale({
       urlLocale: 'en',
       storedLocale: 'zh-CN',
@@ -20,8 +20,8 @@ describe('国际化核心', () => {
     })).toBe('en-US');
     expect(resolveLocale({ storedLocale: 'en_US', browserLocales: ['zh-CN'] })).toBe('en-US');
     expect(resolveLocale({ urlLocale: 'zh-TW', browserLocales: ['en-US'] })).toBe('zh-TW');
-    expect(resolveLocale({ browserLocales: ['fr-FR', 'en-GB'] })).toBe('en-US');
-    expect(resolveLocale({ browserLocales: ['fr-FR'] })).toBe('zh-CN');
+    expect(resolveLocale({ browserLocales: ['zh-CN'] })).toBe('en-US');
+    expect(resolveLocale({ browserLocales: ['fr-FR'] })).toBe('en-US');
   });
 
   it('归一化受支持的语言并拒绝未知语言', () => {
@@ -44,6 +44,11 @@ describe('国际化核心', () => {
     expect(t('terminal.connectionClosed', { code: 1000 })).toBe('连接已关闭（代码=1000）');
     setLocale('zh-TW', { persist: false });
     expect(t('terminal.connectionClosed', { code: 1000 })).toBe('連線已關閉（程式碼=1000）');
+  });
+
+  it('未设置语言偏好时使用英文，并保留显式中文偏好', () => {
+    expect(resolveLocale({ browserLocales: ['zh-CN'] })).toBe('en-US');
+    expect(resolveLocale({ storedLocale: 'zh-CN' })).toBe('zh-CN');
   });
 
   it('英文 SFTP 工具栏使用紧凑操作标签', () => {
@@ -162,10 +167,9 @@ describe('主题在线编辑器国际化', () => {
     readFileSync(new URL('../frontend/src/agent/agent-panel.ts', import.meta.url), 'utf8'),
   ].join('\n');
 
-  it('与主项目共用语言偏好，并支持 URL、持久化设置和浏览器语言', () => {
+  it('与主项目共用语言偏好，并支持 URL 与持久化设置', () => {
     expect(html).toContain("const LOCALE_STORAGE_KEY = 'cloudssh_locale'");
     expect(html).toContain("new URLSearchParams(window.location.search).get('lang')");
-    expect(html).toContain('navigator.languages');
     expect(html).toContain('id="language-toggle"');
   });
 

@@ -13,7 +13,7 @@ const dictionaries: Record<Locale, Record<TranslationKey, string>> = {
   'en-US': enUS,
 };
 const listeners = new Set<(locale: Locale) => void>();
-let currentLocale: Locale = 'zh-CN';
+let currentLocale: Locale = 'en-US';
 
 export function normalizeLocale(value: string | null | undefined): Locale | null {
   if (!value) return null;
@@ -35,18 +35,11 @@ export function resolveLocale(options: {
   storedLocale?: string | null;
   browserLocales?: readonly string[];
 }): Locale {
-  return (
-    normalizeLocale(options.urlLocale) ??
-    normalizeLocale(options.storedLocale) ??
-    options.browserLocales
-      ?.map(normalizeLocale)
-      .find((locale): locale is Locale => locale !== null) ??
-    'zh-CN'
-  );
+  return normalizeLocale(options.urlLocale) ?? normalizeLocale(options.storedLocale) ?? 'en-US';
 }
 
 export function t(key: TranslationKey, params: TranslationParams = {}): string {
-  const template = dictionaries[currentLocale][key] ?? zhCN[key] ?? key;
+  const template = dictionaries[currentLocale][key] ?? enUS[key] ?? key;
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
     Object.hasOwn(params, name) ? String(params[name]) : match
   );
@@ -152,6 +145,11 @@ export function initI18n(): Locale {
   });
   currentLocale = locale;
   document.documentElement.lang = locale;
+  try {
+    localStorage.setItem(STORAGE_KEY, locale);
+  } catch {
+    /* storage may be disabled */
+  }
   mountLanguageSwitchers();
   translateDocument();
   return locale;
