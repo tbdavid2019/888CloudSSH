@@ -6,6 +6,7 @@ workers_dev = true
 [vars]
 DEBUG_MODE = "false"
 BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
+ALLOWED_EMAILS = "oobwei@gmail.com"
 REQUIRE_AUTH = "true"
 RESEND_FROM_EMAIL = "security@david888.com"
 
@@ -69,6 +70,7 @@ name = "cloudssh-test"
 [env.test.vars]
 DEBUG_MODE = "true"
 BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
+ALLOWED_EMAILS = "oobwei@gmail.com"
 REQUIRE_AUTH = "true"
 RESEND_FROM_EMAIL = "security@david888.com"
 
