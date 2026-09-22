@@ -13,6 +13,8 @@ interface UserInfo {
   github_id: number;
   username: string;
   avatar_url: string;
+  email?: string;
+  account_id?: string;
 }
 
 export interface ServerConfig {
@@ -189,14 +191,23 @@ export class ServerList {
     if (!container) return;
 
     container.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = this.user.avatar_url;
-    img.alt = this.user.username;
-    img.className = 'user-avatar w-8 h-8';
-    container.appendChild(img);
+    const displayName = this.user.username || this.user.email || 'User';
+    if (this.user.avatar_url) {
+      const img = document.createElement('img');
+      img.src = this.user.avatar_url;
+      img.alt = displayName;
+      img.className = 'user-avatar w-8 h-8 rounded-full';
+      container.appendChild(img);
+    } else {
+      const avatarDiv = document.createElement('div');
+      avatarDiv.className =
+        'user-avatar w-8 h-8 rounded-full bg-[var(--accent)] text-black font-bold flex items-center justify-center text-xs select-none';
+      avatarDiv.textContent = displayName[0].toUpperCase();
+      container.appendChild(avatarDiv);
+    }
     const span = document.createElement('span');
     span.className = 'text-xs font-bold tracking-[0.1em] text-muted';
-    span.textContent = this.user.username;
+    span.textContent = displayName;
     container.appendChild(span);
   }
 

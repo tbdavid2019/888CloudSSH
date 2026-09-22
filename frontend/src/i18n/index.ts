@@ -22,10 +22,23 @@ export function normalizeLocale(value: string | null | undefined): Locale | null
     normalized === 'zh-tw' ||
     normalized.startsWith('zh-tw-') ||
     normalized === 'zh-hant' ||
-    normalized.startsWith('zh-hant-')
+    normalized.startsWith('zh-hant-') ||
+    normalized === 'zh-hk' ||
+    normalized.startsWith('zh-hk-') ||
+    normalized === 'zh-mo' ||
+    normalized.startsWith('zh-mo-')
   )
     return 'zh-TW';
-  if (normalized === 'zh' || normalized.startsWith('zh-')) return 'zh-CN';
+  if (
+    normalized === 'zh-cn' ||
+    normalized.startsWith('zh-cn-') ||
+    normalized === 'zh-hans' ||
+    normalized.startsWith('zh-hans-') ||
+    normalized === 'zh-sg' ||
+    normalized.startsWith('zh-sg-')
+  )
+    return 'zh-CN';
+  if (normalized === 'zh' || normalized.startsWith('zh-')) return 'zh-TW';
   if (normalized === 'en' || normalized.startsWith('en-')) return 'en-US';
   return null;
 }
@@ -35,7 +48,17 @@ export function resolveLocale(options: {
   storedLocale?: string | null;
   browserLocales?: readonly string[];
 }): Locale {
-  return normalizeLocale(options.urlLocale) ?? normalizeLocale(options.storedLocale) ?? 'en-US';
+  const url = normalizeLocale(options.urlLocale);
+  if (url) return url;
+  const stored = normalizeLocale(options.storedLocale);
+  if (stored) return stored;
+  if (options.browserLocales) {
+    for (const raw of options.browserLocales) {
+      const match = normalizeLocale(raw);
+      if (match) return match;
+    }
+  }
+  return 'en-US';
 }
 
 export function t(key: TranslationKey, params: TranslationParams = {}): string {
@@ -69,7 +92,7 @@ export function translateDocument(root: ParentNode = document): void {
 export function getAlternateLocale(locale: Locale): Locale {
   if (locale === 'zh-CN') return 'zh-TW';
   if (locale === 'zh-TW') return 'en-US';
-  return 'zh-CN';
+  return 'zh-TW';
 }
 
 function localeSelfName(locale: Locale): string {

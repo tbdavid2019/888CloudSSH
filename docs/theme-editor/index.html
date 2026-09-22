@@ -3283,7 +3283,7 @@ function translateDocument() {
     element.textContent = t(element.dataset.i18nTemplate, { value: element.dataset.value || '' });
   });
 
-  const alternateLocale = locale === 'zh-CN' ? 'zh-TW' : locale === 'zh-TW' ? 'en-US' : 'zh-CN';
+  const alternateLocale = locale === 'zh-CN' ? 'zh-TW' : locale === 'zh-TW' ? 'en-US' : 'zh-TW';
   const alternateKey = alternateLocale === 'zh-CN' ? 'zhCN' : alternateLocale === 'zh-TW' ? 'zhTW' : 'enUS';
   const alternateLabel = TRANSLATIONS[alternateLocale]['language.' + alternateKey];
   const languageButton = document.getElementById('language-toggle');
@@ -4234,7 +4234,7 @@ function inferColorScheme(background) {
 }
 
 document.getElementById('language-toggle').addEventListener('click', () => {
-  setLocale(locale === 'zh-CN' ? 'zh-TW' : locale === 'zh-TW' ? 'en-US' : 'zh-CN');
+  setLocale(locale === 'zh-CN' ? 'zh-TW' : locale === 'zh-TW' ? 'en-US' : 'zh-TW');
 });
 
 document.querySelectorAll('[data-current-year]').forEach((element) => {

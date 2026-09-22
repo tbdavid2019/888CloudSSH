@@ -1607,10 +1607,10 @@ export class UserDBDO {
       .exec('SELECT github_id FROM users WHERE id = ?', body.user_id)
       .toArray();
     if (userRows.length === 0) return Response.json({ error: 'User not found' }, { status: 404 });
-    const github_id = (userRows[0] as any).github_id;
-
+    const githubId = (userRows[0] as { github_id: number }).github_id;
+    const tokenTarget = (body as any).instance_id || String(githubId);
     // 生成 one-time-token
-    const token = `${github_id}:${crypto.randomUUID()}`;
+    const token = `${tokenTarget}:${crypto.randomUUID()}`;
     const jumpHosts: SSHJumpHostConfig[] = resolved.slice(0, -1).map((node) => ({
       serverId: node.server.id,
       name: node.server.name,
@@ -1642,7 +1642,7 @@ export class UserDBDO {
       expectedFingerprint: targetNode.expectedFingerprint,
       knownHostIdentity: targetNode.identity,
       userId: String(body.user_id),
-      githubId: String(github_id),
+      githubId: String(githubId),
       serverId: target.id,
       os: target.os,
       locationHint,

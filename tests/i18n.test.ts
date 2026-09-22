@@ -12,7 +12,7 @@ describe('国际化核心', () => {
     expect(Object.keys(zhTW).sort()).toEqual(Object.keys(zhCN).sort());
   });
 
-  it('按 URL、持久化设置解析语言，未设置时默认为英文', () => {
+  it('按 URL、持久化设置、浏览器语言解析语言', () => {
     expect(resolveLocale({
       urlLocale: 'en',
       storedLocale: 'zh-CN',
@@ -20,21 +20,25 @@ describe('国际化核心', () => {
     })).toBe('en-US');
     expect(resolveLocale({ storedLocale: 'en_US', browserLocales: ['zh-CN'] })).toBe('en-US');
     expect(resolveLocale({ urlLocale: 'zh-TW', browserLocales: ['en-US'] })).toBe('zh-TW');
-    expect(resolveLocale({ browserLocales: ['zh-CN'] })).toBe('en-US');
+    expect(resolveLocale({ browserLocales: ['zh-TW'] })).toBe('zh-TW');
+    expect(resolveLocale({ browserLocales: ['zh-CN'] })).toBe('zh-CN');
     expect(resolveLocale({ browserLocales: ['fr-FR'] })).toBe('en-US');
   });
 
   it('归一化受支持的语言并拒绝未知语言', () => {
     expect(normalizeLocale('zh-Hans-CN')).toBe('zh-CN');
     expect(normalizeLocale('zh-Hant-TW')).toBe('zh-TW');
+    expect(normalizeLocale('zh-TW')).toBe('zh-TW');
+    expect(normalizeLocale('zh-HK')).toBe('zh-TW');
+    expect(normalizeLocale('zh')).toBe('zh-TW');
     expect(normalizeLocale('en-GB')).toBe('en-US');
     expect(normalizeLocale('ja-JP')).toBeNull();
   });
 
-  it('语言按钮按固定顺序循环三种语言', () => {
+  it('语言按钮在繁体中文与英文之间切换', () => {
     expect(getAlternateLocale('zh-CN')).toBe('zh-TW');
     expect(getAlternateLocale('zh-TW')).toBe('en-US');
-    expect(getAlternateLocale('en-US')).toBe('zh-CN');
+    expect(getAlternateLocale('en-US')).toBe('zh-TW');
   });
 
   it('切换词典并插值参数', () => {
@@ -46,8 +50,8 @@ describe('国际化核心', () => {
     expect(t('terminal.connectionClosed', { code: 1000 })).toBe('連線已關閉（程式碼=1000）');
   });
 
-  it('未设置语言偏好时使用英文，并保留显式中文偏好', () => {
-    expect(resolveLocale({ browserLocales: ['zh-CN'] })).toBe('en-US');
+  it('未设置语言偏好时依据浏览器语言解析，并保留显式设置', () => {
+    expect(resolveLocale({ browserLocales: ['zh-TW'] })).toBe('zh-TW');
     expect(resolveLocale({ storedLocale: 'zh-CN' })).toBe('zh-CN');
   });
 

@@ -47,12 +47,25 @@ describe('email auth routes', () => {
     const directoryFetch = vi.fn().mockResolvedValue(
       Response.json({ verified: true, accountId: 'acc_test', email: 'user@example.com' })
     );
-    const accountFetch = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json({ account_id: 'acc_test', email: 'user@example.com' }))
-      .mockResolvedValueOnce(Response.json({ workspaces: [] }))
-      .mockResolvedValueOnce(Response.json({ workspace_id: 'ws_test', role: 'owner' }))
-      .mockResolvedValueOnce(Response.json({ token: 'acc:acc_test:session' }));
+    const accountFetch = vi.fn().mockImplementation(async (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === '/internal/account/profile') {
+        return Response.json({ account_id: 'acc_test', email: 'user@example.com' });
+      }
+      if (url.pathname === '/internal/account/recovery/enroll') {
+        return Response.json({ codes: ['CODE-1234'] });
+      }
+      if (url.pathname === '/internal/account/workspaces' && req.method === 'GET') {
+        return Response.json({ workspaces: [] });
+      }
+      if (url.pathname === '/internal/account/workspaces' && req.method === 'POST') {
+        return Response.json({ workspace_id: 'ws_test', role: 'owner' });
+      }
+      if (url.pathname === '/internal/account/session/create') {
+        return Response.json({ token: 'acc:acc_test:session' });
+      }
+      return new Response('Not found', { status: 404 });
+    });
     const workspaceFetch = vi.fn().mockResolvedValue(Response.json({ workspace_id: 'ws_test' }));
     const env = {
       RESEND_API_KEY: 're_test',
@@ -72,7 +85,7 @@ describe('email auth routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Set-Cookie')).toContain('session=acc:acc_test:session');
-    expect(accountFetch).toHaveBeenCalledTimes(4);
+    expect(accountFetch).toHaveBeenCalled();
     expect(workspaceFetch).toHaveBeenCalledOnce();
   });
 

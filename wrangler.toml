@@ -5,6 +5,9 @@ workers_dev = true
 
 [vars]
 DEBUG_MODE = "false"
+BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
+REQUIRE_AUTH = "true"
+RESEND_FROM_EMAIL = "security@david888.com"
 
 # 构建监视路径：仅源代码变动时触发重新构建
 [build]
@@ -65,6 +68,9 @@ name = "cloudssh-test"
 
 [env.test.vars]
 DEBUG_MODE = "true"
+BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
+REQUIRE_AUTH = "true"
+RESEND_FROM_EMAIL = "security@david888.com"
 
 [[env.test.durable_objects.bindings]]
 name = "SSH_SESSION"

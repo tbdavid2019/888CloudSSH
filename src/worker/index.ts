@@ -6,6 +6,7 @@ import {
   handleGitHubAuth,
   handleGitHubCallback,
   handleLogout,
+  isAuthRequired,
   isGitHubAuthRequired,
   isGitHubUserAllowed,
 } from './auth';
@@ -146,9 +147,13 @@ async function isVerifiedTokenValid(token: string, secret: string): Promise<bool
 }
 
 // --- UserDBDO helper ---
-function getUserDBStub(env: Env, githubId: string | number): DurableObjectStub {
-  const id = env.USER_DB.idFromName(githubId.toString());
+function getUserDBStub(env: Env, target: string | number): DurableObjectStub {
+  const id = env.USER_DB.idFromName(target.toString());
   return env.USER_DB.get(id);
+}
+
+function getUserDBStubForUser(env: Env, user: { account_id?: string; github_id?: number | string }): DurableObjectStub {
+  return getUserDBStub(env, user.account_id || user.github_id || 'default');
 }
 
 function isSSHSharingEnabled(env: Env): boolean {
@@ -359,11 +364,15 @@ export default {
 
       // Return config info (includes GitHub auth availability)
       if (url.pathname === '/api/config') {
+        const authRequired = isAuthRequired(env);
         return Response.json({
           turnstileEnabled: !!env.TURNSTILE_SECRET,
           sitekey: env.TURNSTILE_SITEKEY || '',
           githubAuthEnabled: !!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
           githubAuthRequired: isGitHubAuthRequired(env),
+          authRequired,
+          emailAuthEnabled: true,
+          bootstrapEmail: env.BOOTSTRAP_OWNER_EMAIL || '',
           sshSharingEnabled: isSSHSharingEnabled(env),
         });
       }
@@ -394,7 +403,7 @@ async function handleServersRoute(request: Request, url: URL, env: Env): Promise
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  const stub = getUserDBStub(env, user.github_id);
+  const stub = getUserDBStubForUser(env, user);
 
   // GET /api/servers
   if (url.pathname === '/api/servers' && request.method === 'GET') {
@@ -624,7 +633,6 @@ async function handleServersRoute(request: Request, url: URL, env: Env): Promise
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // /api/servers/:id/connect
   const connectMatch = url.pathname.match(/^\/api\/servers\/(\d+)\/connect$/);
   if (connectMatch && request.method === 'POST') {
     const serverId = connectMatch[1];
@@ -632,7 +640,10 @@ async function handleServersRoute(request: Request, url: URL, env: Env): Promise
       new Request(`http://internal/internal/servers/${serverId}/connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id }),
+        body: JSON.stringify({
+          user_id: user.id,
+          instance_id: user.account_id ? String(user.account_id) : String(user.github_id),
+        }),
       })
     );
 
@@ -685,7 +696,7 @@ async function handleThemeRoute(request: Request, env: Env): Promise<Response> {
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  const stub = getUserDBStub(env, user.github_id);
+  const stub = getUserDBStubForUser(env, user);
 
   if (request.method === 'GET') {
     return stub.fetch(
@@ -735,7 +746,7 @@ async function handleKnownHostsRoute(request: Request, url: URL, env: Env): Prom
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  const stub = getUserDBStub(env, user.github_id);
+  const stub = getUserDBStubForUser(env, user);
 
   // GET /api/known-hosts?host=X&port=Y  → 获取特定主机指纹
   // GET /api/known-hosts                 → 列出所有已知主机
@@ -788,7 +799,7 @@ async function handleSnippetsRoute(request: Request, url: URL, env: Env): Promis
   if (!user) {
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
-  const stub = getUserDBStub(env, user.github_id);
+  const stub = getUserDBStubForUser(env, user);
   if (url.pathname === '/api/snippets' && request.method === 'GET') {
     return stub.fetch(
       new Request(`http://internal/internal/snippets?user_id=${user.id}`, { method: 'GET' })
@@ -882,7 +893,7 @@ async function handleAIRoute(request: Request, url: URL, env: Env): Promise<Resp
     }
   }
 
-  const stub = getUserDBStub(env, user.github_id);
+  const stub = getUserDBStubForUser(env, user);
 
   // GET /api/ai/config — return current AI config (masked)
   if (url.pathname === '/api/ai/config' && request.method === 'GET') {
@@ -1071,8 +1082,8 @@ async function handleSSHConnection(request: Request, env: Env): Promise<Response
     return new Response('Forbidden', { status: 403 });
   }
 
-  if (isGitHubAuthRequired(env) && !(await getAuthenticatedUser(request, env))) {
-    return Response.json({ error: 'GitHub authentication required' }, { status: 401 });
+  if (isAuthRequired(env) && !(await getAuthenticatedUser(request, env))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   const sessionName = `session:${Date.now()}:${crypto.randomUUID()}`;
@@ -1112,10 +1123,10 @@ async function handleResumeSSHConnection(
     return new Response('Forbidden', { status: 403 });
   }
 
-  // 与 direct / one-time-token 升级路径保持一致的强制 GitHub 登录门禁：
-  // REQUIRE_GITHUB_AUTH=true 时 resume 凭据不能替代有效会话。
-  if (isGitHubAuthRequired(env) && !(await getAuthenticatedUser(request, env))) {
-    return Response.json({ error: 'GitHub authentication required' }, { status: 401 });
+  // 与 direct / one-time-token 升级路径保持一致的强制登录门禁：
+  // 强制登录模式下 resume 凭据不能替代有效会话。
+  if (isAuthRequired(env) && !(await getAuthenticatedUser(request, env))) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   const doId = env.SSH_SESSION.idFromName(sessionName);
@@ -1191,7 +1202,7 @@ async function handleShareOwnerRoute(request: Request, url: URL, env: Env): Prom
   const match = url.pathname.match(/^\/api\/shares\/([^/]+)(?:\/audit)?$/);
   if (!match) return new Response('Not Found', { status: 404 });
   const shareId = decodeURIComponent(match[1]);
-  const ownerStub = getUserDBStub(env, user.github_id);
+  const ownerStub = getUserDBStubForUser(env, user);
   const metadataResponse = await ownerStub.fetch(
     new Request(
       `http://internal/internal/shares/${encodeURIComponent(shareId)}?user_id=${user.id}`,
@@ -1311,18 +1322,18 @@ async function handleTokenSSHConnection(
     return new Response('Forbidden', { status: 403 });
   }
 
-  const githubAuthRequired = isGitHubAuthRequired(env);
-  const authenticatedUser = githubAuthRequired ? await getAuthenticatedUser(request, env) : null;
-  if (githubAuthRequired && !authenticatedUser) {
-    return Response.json({ error: 'GitHub authentication required' }, { status: 401 });
+  const authRequired = isAuthRequired(env);
+  const authenticatedUser = authRequired ? await getAuthenticatedUser(request, env) : null;
+  if (authRequired && !authenticatedUser) {
+    return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   // 从 UserDBDO 消费 token，获取连接配置
-  const [githubId] = token.split(':');
-  if (!githubId) {
+  const [instanceId] = token.split(':');
+  if (!instanceId) {
     return Response.json({ error: 'Invalid token format' }, { status: 400 });
   }
-  const stub = getUserDBStub(env, githubId);
+  const stub = getUserDBStub(env, instanceId);
   const tokenRes = await stub.fetch(
     new Request('http://internal/internal/connect-token/consume', {
       method: 'POST',

@@ -6,6 +6,10 @@
 
 ### Added
 
+- 新增繁體中文優先語言偵測與切換修復（瀏覽器偏好包含 `zh` / `zh-TW` 時自動判定為繁體中文，避免按鈕與文案預設顯示簡體中文）。
+- 前端實作完整工作區 Email OTP 登入介面（`EmailLoginForm`），支援驗證碼發送、60 秒倒數計時、自動焦點切換與救援碼應急登入。
+- 新增首次登入 10 組一次性應急救援碼彈窗（支援一鍵複製全部與匯出 `.txt` 文字檔備份）。
+- 支援環境變數 `REQUIRE_AUTH = "true"`、`BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"`，首頁預設直接呈現工作區登入頁面。
 - 新增無密碼 Email OTP 登入基礎架構、Resend 發信與救援碼應急登入後端路由。
 - 新增 `AccountDirectoryDO`、`AccountDO`、`WorkspaceDO` 三層 Durable Object 骨架與 SQLite v3 遷移。
 - `AccountDirectoryDO` 內建滑動窗口 IP 頻率限制，搭配可選 Turnstile 機制，提升防濫用與高可用性。
@@ -18,6 +22,10 @@
 
 ### Fixed
 
+- 修正語言切換按鈕在英文模式下錯誤指向簡體中文的問題，預設切換為繁體中文。
+- 修正 `email-auth-route` 未回傳 `challenge_id` 導致驗證失敗的問題。
+- 修正 `AccountDO` 與 `UserDBDO` 間的 `/internal/oauth-user` 路由與帳號 ID 解析，修復 `/api/auth/me` 1101 例外。
+- 修正 `UserDBDO` 在 `handleConnectServer` 中未定義 `github_id` 變數的編譯錯誤。
 - 修正登入頁頁腳文字對比度以完全符合 WCAG 2 AA 標準（通過 Playwright axe 無障礙檢查）。
 - 修正 OTP 驗證流程避免因未傳遞可選 Turnstile Token 造成誤攔截。
 

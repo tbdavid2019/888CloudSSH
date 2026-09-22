@@ -1,6 +1,7 @@
 // 渲染模板中的 innerHTML 站点均带 `pi-lens-ignore: no-inner-html` 内联抑制：
 // 动态值均经 escapeHtml 转义或来自可信 i18n 词条，无用户输入直插；
 // GitHub Actions 质量门禁不含该规则（AGENTS.md #27）。
+import { EmailLoginForm } from './email-login';
 import { onLocaleChange, t, translateDocument } from './i18n';
 import { loadKnownFingerprint } from './known-hosts';
 import { parsePort } from './port';
@@ -65,6 +66,7 @@ async function decryptCredentials(
 export interface ConnectionFormOptions {
   /** 获取 TabManager 实例 */
   getTabManager: () => TabManager;
+  onLoginSuccess?: (user: any) => void;
 }
 
 export class ConnectionForm {
@@ -74,10 +76,20 @@ export class ConnectionForm {
   private turnstileWidgetId: string | null = null;
   private turnstileSitekey = '';
   private turnstileTheme: ColorScheme | null = null;
+  private activeMode: 'login' | 'direct' = 'login';
+  private emailLoginForm: EmailLoginForm | null = null;
+  private config: {
+    turnstileEnabled: boolean;
+    sitekey: string;
+    githubAuthEnabled: boolean;
+    githubAuthRequired: boolean;
+    authRequired?: boolean;
+    emailAuthEnabled?: boolean;
+    bootstrapEmail?: string;
+  } | null = null;
 
   constructor(options: ConnectionFormOptions) {
     this.options = options;
-    this.render();
     onColorSchemeChange((colorScheme) => {
       if (
         this.turnstileEnabled &&
@@ -88,12 +100,12 @@ export class ConnectionForm {
         this.renderTurnstile();
       }
     });
-    this.loadSavedCredentials();
     this.checkTurnstileConfig();
     onLocaleChange(() => {
       const select = document.getElementById('anon-region') as HTMLSelectElement | null;
       if (select) populateRegionSelect(select, select.value);
       this.renderRecentConnections();
+      this.renderModeHeader();
     });
   }
 
@@ -105,23 +117,113 @@ export class ConnectionForm {
         sitekey: string;
         githubAuthEnabled: boolean;
         githubAuthRequired: boolean;
+        authRequired?: boolean;
+        emailAuthEnabled?: boolean;
+        bootstrapEmail?: string;
       };
+      this.config = config;
       this.turnstileEnabled = config.turnstileEnabled;
       this.turnstileSitekey = config.sitekey;
+
+      if (config.authRequired || config.emailAuthEnabled) {
+        this.activeMode = 'login';
+        this.renderModeHeader();
+        this.renderEmailLogin();
+        return;
+      }
+
       if (config.githubAuthRequired) {
         this.renderGitHubAuthRequired(config.githubAuthEnabled);
         return;
       }
+
+      this.activeMode = 'direct';
+      this.renderModeHeader();
+      this.render();
+      this.loadSavedCredentials();
       if (this.turnstileEnabled && this.turnstileSitekey) {
         this.renderTurnstile();
       }
-      // 渲染 GitHub 登录按钮（仅当 OAuth 已配置时）
       if (config.githubAuthEnabled) {
         this.renderGitHubLoginButton();
       }
     } catch {
-      // Config endpoint not available, skip Turnstile
+      this.activeMode = 'direct';
+      this.renderModeHeader();
+      this.render();
+      this.loadSavedCredentials();
     }
+  }
+
+  private renderModeHeader(): void {
+    const titleContainer = document.getElementById('auth-card-title-container');
+    if (!titleContainer) return;
+
+    if (this.config?.authRequired) {
+      titleContainer.innerHTML = `
+        <span class="text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.loginTitle">登入工作區</span>
+      `;
+      translateDocument(titleContainer);
+      return;
+    }
+
+    if (this.config?.emailAuthEnabled) {
+      titleContainer.innerHTML = `
+        <div class="flex gap-2">
+          <button type="button" id="auth-mode-login-tab" class="auth-tab ${this.activeMode === 'login' ? 'auth-tab-active' : ''} px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.loginTab">工作區登入</button>
+          <button type="button" id="auth-mode-direct-tab" class="auth-tab ${this.activeMode === 'direct' ? 'auth-tab-active' : ''} px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.directTab">匿名連線</button>
+        </div>
+      `;
+      translateDocument(titleContainer);
+      document.getElementById('auth-mode-login-tab')?.addEventListener('click', () => {
+        this.setMode('login');
+      });
+      document.getElementById('auth-mode-direct-tab')?.addEventListener('click', () => {
+        this.setMode('direct');
+      });
+      return;
+    }
+
+    titleContainer.innerHTML = `
+      <span class="text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.connectionParameters">連線參數</span>
+    `;
+    translateDocument(titleContainer);
+  }
+
+  private setMode(mode: 'login' | 'direct'): void {
+    this.activeMode = mode;
+    this.renderModeHeader();
+    if (mode === 'login') {
+      this.renderEmailLogin();
+    } else {
+      this.render();
+      this.loadSavedCredentials();
+      if (this.turnstileEnabled && this.turnstileSitekey) {
+        this.renderTurnstile();
+      }
+      if (this.config?.githubAuthEnabled) {
+        this.renderGitHubLoginButton();
+      }
+    }
+  }
+
+  private renderEmailLogin(): void {
+    const container = document.getElementById('connection-form-container');
+    if (!container) return;
+    this.emailLoginForm = new EmailLoginForm({
+      container,
+      bootstrapEmail: this.config?.bootstrapEmail,
+      turnstileEnabled: this.turnstileEnabled,
+      turnstileSitekey: this.turnstileSitekey,
+      onLoginSuccess: (user) => {
+        this.options.onLoginSuccess?.(user);
+      },
+      onSwitchToDirect: !this.config?.authRequired
+        ? () => {
+            this.setMode('direct');
+          }
+        : undefined,
+    });
   }
 
   private renderGitHubAuthRequired(githubAuthEnabled: boolean): void {

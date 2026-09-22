@@ -88,6 +88,16 @@ export function isGitHubAuthRequired(env: Env): boolean {
   return raw.trim().toLowerCase() !== 'false';
 }
 
+/**
+ * 检查系统是否强制要求登录（Email OTP 模式或 GitHub 模式）。
+ */
+export function isAuthRequired(env: Env): boolean {
+  if (env.REQUIRE_AUTH && env.REQUIRE_AUTH.trim().toLowerCase() !== 'false') return true;
+  if (isGitHubAuthRequired(env)) return true;
+  if (env.BOOTSTRAP_OWNER_EMAIL && env.BOOTSTRAP_OWNER_EMAIL.trim() !== '') return true;
+  return false;
+}
+
 function oauthFailure(message: string, status: number): Response {
   return new Response(message, {
     status,
@@ -107,6 +117,43 @@ export async function getAuthenticatedUser(request: Request, env: Env): Promise<
   const cookies = parseCookies(request);
   const sessionToken = cookies.session;
   if (!sessionToken) return null;
+
+  if (sessionToken.startsWith('acc:')) {
+    const account = await getAuthenticatedAccount(request, env);
+    if (!account) return null;
+    const accountId = (account as any).account_id || account.id;
+    if (!accountId) return null;
+    const stub = getUserDBStub(env, accountId);
+    let userId = 1;
+    try {
+      const uRes = await stub.fetch(
+        new Request('http://internal/internal/oauth-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            github_id: 0,
+            username: account.email.split('@')[0],
+            avatar_url: '',
+          }),
+        })
+      );
+      if (uRes.ok) {
+        const u = (await uRes.json()) as { id: number };
+        if (u.id) userId = u.id;
+      }
+    } catch {
+      /* ignore if userdb fails */
+    }
+    return {
+      id: userId,
+      github_id: 0,
+      username: account.email.split('@')[0],
+      avatar_url: '',
+      account_id: accountId,
+      email: account.email,
+      auth_method: 'email',
+    };
+  }
 
   const [githubId] = sessionToken.split(':');
   if (!githubId) return null;
@@ -342,14 +389,6 @@ export async function handleLogout(request: Request, env: Env): Promise<Response
  * GET /api/auth/me → 获取当前用户信息
  */
 export async function handleGetMe(request: Request, env: Env): Promise<Response> {
-  const account = await getAuthenticatedAccount(request, env);
-  if (account) {
-    return Response.json({
-      account_id: account.id,
-      email: account.email,
-      auth_method: 'email',
-    });
-  }
   const user = await getAuthenticatedUser(request, env);
   if (!user) {
     return Response.json({ error: 'Not authenticated' }, { status: 401 });

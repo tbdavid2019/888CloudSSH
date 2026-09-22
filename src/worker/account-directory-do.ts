@@ -154,24 +154,37 @@ export class AccountDirectoryDO {
       now?: unknown;
     }>();
     const email = normalizeEmail(body.email);
-    if (!email || typeof body.challengeId !== 'string' || typeof body.codeHash !== 'string') {
+    if (!email || typeof body.codeHash !== 'string') {
       return Response.json({ verified: false, error: 'Invalid request' }, { status: 400 });
     }
     const now = Number.isSafeInteger(body.now) ? Number(body.now) : Date.now();
     const emailHash = await sha256(email);
-    const rows = this.db
-      .exec(
-        `SELECT code_hash, expires_at, failed_attempts, consumed_at
-         FROM otp_challenges WHERE id = ? AND email_hash = ?`,
-        body.challengeId,
-        emailHash
-      )
-      .toArray() as Array<{
-        code_hash: string;
-        expires_at: number;
-        failed_attempts: number;
-        consumed_at: number | null;
-      }>;
+    const rows = (
+      typeof body.challengeId === 'string' && body.challengeId.length > 0
+        ? this.db
+            .exec(
+              `SELECT id, code_hash, expires_at, failed_attempts, consumed_at
+               FROM otp_challenges WHERE id = ? AND email_hash = ?`,
+              body.challengeId,
+              emailHash
+            )
+            .toArray()
+        : this.db
+            .exec(
+              `SELECT id, code_hash, expires_at, failed_attempts, consumed_at
+               FROM otp_challenges WHERE email_hash = ? AND consumed_at IS NULL AND expires_at > ?
+               ORDER BY created_at DESC LIMIT 1`,
+              emailHash,
+              now
+            )
+            .toArray()
+    ) as Array<{
+      id: string;
+      code_hash: string;
+      expires_at: number;
+      failed_attempts: number;
+      consumed_at: number | null;
+    }>;
     const row = rows[0];
     if (!row || row.consumed_at !== null || row.expires_at <= now) {
       return Response.json({ verified: false }, { status: 401 });
@@ -179,7 +192,7 @@ export class AccountDirectoryDO {
     if (row.failed_attempts >= 5 || row.code_hash !== body.codeHash) {
       this.db.exec(
         'UPDATE otp_challenges SET failed_attempts = failed_attempts + 1 WHERE id = ?',
-        body.challengeId
+        row.id
       );
       return Response.json({ verified: false }, { status: 401 });
     }
@@ -195,7 +208,7 @@ export class AccountDirectoryDO {
         emailHash
       );
     }
-    this.db.exec('UPDATE otp_challenges SET consumed_at = ? WHERE id = ?', now, body.challengeId);
+    this.db.exec('UPDATE otp_challenges SET consumed_at = ? WHERE id = ?', now, row.id);
     return Response.json({ verified: true, accountId, email });
   }
 

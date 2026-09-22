@@ -264,6 +264,9 @@ function showAuthSection(): void {
   if (!connectionForm) {
     connectionForm = new ConnectionForm({
       getTabManager,
+      onLoginSuccess: (user) => {
+        showUserSpace(user);
+      },
     });
   }
   syncConnectionBackButtons();
@@ -274,6 +277,8 @@ function showUserSpace(user: {
   github_id: number;
   username: string;
   avatar_url: string;
+  email?: string;
+  account_id?: string;
 }): void {
   deactivateTerminalView();
   isLoggedIn = true;

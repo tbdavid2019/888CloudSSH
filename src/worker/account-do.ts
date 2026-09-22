@@ -111,7 +111,7 @@ export class AccountDO {
       body.account_id,
       body.email
     );
-    return Response.json({ account_id: body.account_id, email: body.email });
+    return Response.json({ id: body.account_id, account_id: body.account_id, email: body.email });
   }
 
   private async handleSessionCreate(request: Request): Promise<Response> {
@@ -146,7 +146,7 @@ export class AccountDO {
       .toArray() as Array<{ expires_at: number; email: string; account_id: AccountId }>;
     const row = rows[0];
     if (!row || row.expires_at <= Date.now()) return Response.json({ error: 'Invalid session' }, { status: 401 });
-    return Response.json({ account_id: row.account_id, email: row.email });
+    return Response.json({ id: row.account_id, account_id: row.account_id, email: row.email });
   }
 
   private async handleSessionDelete(request: Request): Promise<Response> {
