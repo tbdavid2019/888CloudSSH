@@ -77,6 +77,10 @@ docs/      GitHub Pages 主題編輯器
 
 ## 授權與署名
 
-目前沿用原專案的 [Apache License 2.0](LICENSE) 與 [NOTICE](NOTICE)。再發佈或修改時請保留原作者與歷史貢獻者的著作權、NOTICE 與來源說明。
+888CloudSSH 是混合授權的衍生專案：
 
-888CloudSSH 的新增修改由本專案維護者負責；原專案名稱、作者與貢獻者歸屬仍以原始倉庫與 NOTICE 為準。
+- 原始 CloudSSH 程式碼與原作者、歷史貢獻者的部分，繼續依 [Apache License 2.0](LICENSE) 與 [NOTICE](NOTICE) 分發。
+- 由 888CloudSSH 維護者新增、且可與原始部分區分的程式碼，依 [GNU AGPL-3.0-or-later](LICENSE-AGPL-3.0) 分發。
+- 同時包含原始程式碼與新增修改的檔案，原始部分保留 Apache 2.0，新增加的部分適用 AGPL-3.0-or-later；兩份授權與 NOTICE 都必須保留。
+
+原專案名稱、作者與貢獻者歸屬仍以原始倉庫與 NOTICE 為準。這份說明描述本專案的授權範圍，不取代個別檔案與第三方套件的授權條款。

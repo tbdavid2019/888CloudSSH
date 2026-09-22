@@ -12,7 +12,7 @@
 
 ## Project Overview
 
-CloudSSH is a serverless Web SSH terminal built on Cloudflare Workers. Users connect to SSH servers through a browser-based terminal UI with integrated SFTP file management and AI Agent assistant.
+888CloudSSH is an independent serverless Web SSH terminal built on Cloudflare Workers. Users connect to SSH servers through a browser-based terminal UI with integrated SFTP file management and AI Agent assistant.
 
 ## Architecture
 
@@ -121,7 +121,7 @@ frontend/
 │   ├── ai-config.ts       # AI model configuration modal (Combobox 下拉、免密安全拉取与主题自适应)
 │   ├── i18n/
 │   │   ├── index.ts        # 语言解析、词条查询（t）与 locale 变更通知
-│   │   └── locales/        # zh-CN.ts / en-US.ts 词条字典
+│   │   └── locales/        # zh-CN.ts / zh-TW.ts / en-US.ts 词条字典
 │   ├── style.css           # Global styles (CSS variable theme system)
 │   └── turnstile.d.ts      # Turnstile type declarations
 └── vite.config.ts          # Dev proxy to localhost:8787（+ esbuild minifySyntax 关闭以规避 xterm 6 DECRQM bug）
@@ -146,9 +146,6 @@ pnpm run dev
 
 # Deploy production (builds frontend + deploys worker)
 pnpm run deploy
-
-# Deploy test environment (builds frontend + deploys to cloudssh-test)
-pnpm run deploy:test
 
 # Build frontend only (required before deploy)
 pnpm run build:frontend
@@ -274,23 +271,24 @@ pnpm run verify      # typecheck + test + build:frontend + test:e2e 完整门禁
 - 测试文件位于 `tests/` 目录，`.test.ts` 后缀（详见 Key Directories 中的 `tests/` 结构）。
 - `tests/ssh/fixtures/` 中的私钥只用于公开协议测试，绝不可用于真实服务器。
 - E2E 首次运行需安装浏览器：`pnpm exec playwright install chromium`。
-- 新增前端文案必须同时提供 zh-CN/en-US 词条，`i18n.test.ts` 会校验两端词条对齐。
+- 新增前端文案必须同时提供 zh-CN/zh-TW/en-US 词条，`i18n.test.ts` 会校验三端词条对齐。
 
 ## Git 工作流规范
 
-**禁止创建特性分支（feature branch）。** 所有变更必须直接提交到 `test` 分支，保持仓库分支结构整洁。
+888CloudSSH 是独立仓库，`main` 是唯一主线与生产分支。功能开发使用短期分支并通过 Pull Request 合并到 `main`。
 
 ```
-test 分支（开发/测试）  ──合并──>  main 分支（生产）
+feature/fix 分支  ──Pull Request──>  main
 ```
 
 ### 提交流程
 
-1. 切换到 `test` 分支：`git checkout test`
-2. 拉取最新代码：`git pull origin test`
-3. 进行开发并本地测试
-4. 直接提交到 `test` 分支并推送：`git push origin test`
-5. 测试通过后，维护者将 `test` 合并到 `main`
+1. 从最新 `main` 创建短期功能或修复分支
+2. 完成开发并运行 `pnpm run verify`
+3. 更新 `CHANGELOG.md`，使用 `## YYYY-MM-DD` 日期标题，不写版本号
+4. 提交 Conventional Commit，并在同一个 commit 中包含 `CHANGELOG.md`
+5. 推送分支并创建 Pull Request 到 `main`
+6. Review 通过后合并；合并后的 `main` 负责生产部署
 
 ### 提交信息规范
 
@@ -306,15 +304,13 @@ perf: 性能优化
 docs: 文档更新
 chore: 构建/配置变更
 ci: CI/CD 变更
-release: 发布 vX.Y.Z <主题>版本（如 `release: 发布 v1.10.2 工作流和文档更新版本`）
 ```
 
 ### 分支用途
 
 | 分支 | 用途 | 可直接推送 |
 | ------ | ------ | ----------- |
-| `test` | 所有开发、测试、PR 合入 | ✅ |
-| `main` | 生产环境，仅通过 test 合入 | ❌（保护分支） |
+| `main` | 唯一主线、Pull Request 目标与生产环境 | 依仓库保护规则 |
 
 ## Common Pitfalls
 
@@ -351,7 +347,7 @@ release: 发布 vX.Y.Z <主题>版本（如 `release: 发布 v1.10.2 工作流�
 
 27. **Biome formatting convention** - `biome.json`（single 引号、`lineWidth: 100`）自 v1.10.0 起是代码格式基准，相关 lint 规则（`noUnusedVariables`/`useConst` 等）应保持通过；CI 质量门禁不执行 Biome，以 `typecheck` + `test` + 可复现构建 + E2E 为准。
 
-28. **Frontend i18n** - 所有面向用户的文案走 `frontend/src/i18n` 的 `t()` / `data-i18n` / `data-i18n-title` / `data-i18n-placeholder` 管线并同步 `locales/zh-CN.ts` 与 `en-US.ts`；语言解析支持 URL 参数、localStorage（`cloudssh_locale`）与浏览器语言回退。新增文案时保持两端词条对齐，勿硬编码中文到模板字符串。
+28. **Frontend i18n** - 所有面向用户的文案走 `frontend/src/i18n` 的 `t()` / `data-i18n` / `data-i18n-title` / `data-i18n-placeholder` 管线并同步 `locales/zh-CN.ts`、`zh-TW.ts` 与 `en-US.ts`；语言解析支持 URL 参数与 localStorage（`cloudssh_locale`），无偏好时默认 English。新增文案时保持三端词条对齐，勿硬编码中文到模板字符串。
 
 29. **CI paths-ignore 作用域** - `deploy.yml` 的 `paths-ignore` 使用标准 glob：`*` 不匹配 `/`，因此 `*.md` 只覆盖仓库根目录的 Markdown，`tests/` 等子目录下的文档变更（如 `tests/README.md`）会照常触发部署流水线。忽略目录内文件必须用 `**/*.md` / `**/*.png` 等跨目录模式；修改 `deploy.yml` 本身会触发一次校验运行（属于预期行为，且能验证新过滤规则）。
 
@@ -375,16 +371,9 @@ release: 发布 vX.Y.Z <主题>版本（如 `release: 发布 v1.10.2 工作流�
 
 ## Deployment Notes
 
-### 双环境部署
+### Production 部署
 
-项目支持 production 和 test 两个独立环境同时运行在 Cloudflare 上：
-
-| 环境 | Worker 名称 | 分支 | 域名 |
-| ------ | ------------ | ------ | ------ |
-| Production | `cloudssh` | `main` | `<name>.workers.dev` + 自定义域名 |
-| Test | `cloudssh-test` | `test` | `<name>-test.workers.dev` + 自定义域名 |
-
-两个环境的 Durable Objects（SSHSessionDO、UserDBDO、SSHShareDO）数据完全隔离。
+独立仓库只维护 `main` 生产主线。Worker 名称为 `cloudssh`，Durable Objects（SSHSessionDO、UserDBDO、SSHShareDO）与生产数据保持一致。
 
 ### 部署方式
 
@@ -392,7 +381,7 @@ release: 发布 vX.Y.Z <主题>版本（如 `release: 发布 v1.10.2 工作流�
 
 1. 构建前端：`pnpm run build:frontend`
 2. 进入 Cloudflare Dashboard → Workers
-3. 创建/选择 worker（production 用 `cloudssh`，test 用 `cloudssh-test`）
+3. 创建/选择 production Worker `cloudssh`
 4. 上传构建产物或通过 Git 集成自动部署
 5. 在 Settings → Variables 中配置环境变量和 DO 绑定
 6. 如需自定义域名，在 Settings → Domains & Routes 中绑定
@@ -401,15 +390,12 @@ release: 发布 vX.Y.Z <主题>版本（如 `release: 发布 v1.10.2 工作流�
 
 ```bash
 pnpm run deploy          # 部署 production
-pnpm run deploy:test     # 部署 test 环境
 ```
 
 **方式三：GitHub Actions（CI/CD）**
 
-- `test` 分支 push → 自动部署到 `cloudssh-test`
 - `main` 分支 push → 自动部署到 `cloudssh`
 - `docs/**` 变更 → 发布 GitHub Pages 主题编辑器（`github-pages.yml`）
-- Fork 定时同步上游 `main`（`sync-upstream.yml`，默认关闭，由 `AUTO_SYNC_UPSTREAM` 仓库变量开启）
 
 > 部署门禁（`deploy.yml`）依次执行：冻结锁文件安装 → Playwright 浏览器安装 → `typecheck` → `test` → `build:frontend` → `test:e2e` → 按分支部署；任一环节失败即阻断部署。
 
@@ -440,34 +426,10 @@ CLI: `npx wrangler secret set <SECRET_NAME>`
 - 只有确认环境中没有需要保留的数据、且明确要重建整个环境时，才可删除 Worker
 - Test 环境 DO 绑定与 production 相同的 class_name，但因 Worker 名称不同，数据完全隔离
 
-## AI 版本发布与文档维护规范
+## Documentation and commit rules
 
-在辅助人类进行版本升级和发布时，AI 助手必须严格遵守以下规范：
-
-1. **版本信息流转（由人类主导，AI 辅助更新）**：
-   - 严禁 AI 助手自主决定或递增版本号。
-   - 当需要发布新版本时，根据人类指定的版本号，AI 应在本地修改：
-     - `package.json` 中的 `"version": "X.Y.Z"`。
-     - `frontend/package.json` 中的 `"version": "X.Y.Z"`（与根目录保持一致）。
-     - `CHANGELOG.md` 头部追加最新的更新日志（格式需为 `## [X.Y.Z] - YYYY-MM-DD`）。
-   - 必须遵循 [Keep a Changelog](https://keepachangelog.com/) 规范组织内容。
-2. **README 导航链接维护**：
-   - `README.md` 中的 `更新日志` 链接与 `README_en.md` 中的 `Changelog` 跳转超链接必须保持正常。
-3. **发布流程（从版本指定到上线，按顺序执行）**：
-   1. 用户明确指定发布版本号（如 v1.10.1）后，AI 按第 1 条更新版本文件与 CHANGELOG，并提交推送：
-      - 提交信息遵循 `release: 发布 vX.Y.Z <主题>版本` 格式（主题概括本次版本的核心改动，如 `release: 发布 v1.10.2 工作流和文档更新版本`），正文注明本次版本更新要点与验证结果（typecheck / test / verify）。
-      - 提交前确认工作区干净或只暂存版本与 CHANGELOG 相关文件，避免混入无关改动（如格式化漂移）。
-      - 推送 `test` 分支：`git push origin test`（触发测试环境自动部署）。
-   2. 创建 PR 合并 `test` 到 `main`：
-      - 标题遵循 `release: 发布 vX.Y.Z <主题>版本` 格式（与提交信息主题一致）。
-      - 正文必须说明本次版本的更新内容：包含提交列表、关联 Issue/PR、验证结果。
-      - **Issue 默认保持 open**：发布 PR 正文不得使用 `Closes #xxx` / `Fixes #xxx` 等自动关闭关键字，除非用户明确要求关闭；关联 Issue 仅以「关联 Issue：#xxx」形式列出，由用户后续手动关闭（用户可能仍有反馈需要跟进）。
-   3. **PR 的审核与合并由用户手动完成**：AI 创建 PR 后应等待用户审核并合并，不得自行合并或使用管理员旁路合并。
-   4. 用户合并 PR 到 `main` 后（生产环境自动部署），AI 执行以下命令同步本地分支：
-
-      ```bash
-      git fetch origin && git reset --hard origin/main && git push origin test --force
-      ```
-
-      - 该操作使本地 `test` 分支与已发布的 `main` 完全一致。
-      - 若此前还有未发布的 `test` 提交，会被强制覆盖，请确认已合并完成后再执行。
+- 每次 commit 必须同时更新 `CHANGELOG.md`。
+- CHANGELOG 使用 `## YYYY-MM-DD` 日期标题，不写版本号。
+- README、AGENTS、部署说明、授权说明或测试行为变更，必须在对应日期下记录。
+- 不递增或自行发布版本号；版本号发布流程不属于本仓库固定工作流。
+- `src/worker/html.ts` 是生成文件，修改前端后运行 `pnpm run build:frontend` 更新，不直接手改。

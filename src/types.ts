@@ -167,10 +167,20 @@ export interface Env {
   SSH_SESSION: DurableObjectNamespace;
   USER_DB: DurableObjectNamespace;
   SSH_SHARE: DurableObjectNamespace;
+  ACCOUNT_DIRECTORY: DurableObjectNamespace;
+  ACCOUNT_DO: DurableObjectNamespace;
+  WORKSPACE_DO: DurableObjectNamespace;
   MAX_CONNECTIONS?: string;
   IDLE_TIMEOUT?: string;
   TURNSTILE_SECRET?: string;
   TURNSTILE_SITEKEY?: string;
+  TURNSTILE_HOSTNAMES?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
+  BOOTSTRAP_OWNER_EMAIL?: string;
+  ALLOWED_EMAILS?: string;
+  EMAIL_OTP_ENABLED?: string;
+  GITHUB_OAUTH_ENABLED?: string;
   // GitHub OAuth（可选，未配置则登录功能自动禁用）
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
@@ -192,6 +202,75 @@ export interface UserInfo {
   github_id: number;
   username: string;
   avatar_url: string;
+}
+
+export type AccountId = `acc_${string}`;
+export type WorkspaceId = `ws_${string}`;
+export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type AccountSessionToken = `acc:${AccountId}:${string}`;
+export type LegacyGitHubSessionToken = `gh:${string}:${string}` | `${string}:${string}`;
+
+export interface AccountProfile {
+  id: AccountId;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceMembership {
+  workspace_id: WorkspaceId;
+  account_id: AccountId;
+  role: WorkspaceRole;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceInvitation {
+  id: string;
+  workspace_id: WorkspaceId;
+  email: string;
+  role: Exclude<WorkspaceRole, 'owner'>;
+  expires_at: string;
+  revoked_at?: string | null;
+  accepted_at?: string | null;
+  created_at: string;
+}
+
+export interface EmailOtpChallenge {
+  id: string;
+  email: string;
+  expires_at: number;
+  resend_available_at: number;
+  failed_attempts: number;
+  consumed_at?: number | null;
+}
+
+export interface RecoveryCodeMetadata {
+  id: string;
+  account_id: AccountId;
+  consumed_at?: string | null;
+  created_at: string;
+}
+
+export interface VaultKeyMetadata {
+  id: string;
+  workspace_id?: WorkspaceId | null;
+  account_id?: AccountId | null;
+  name: string;
+  key_type: 'ed25519' | 'rsa' | 'ecdsa';
+  fingerprint: string;
+  created_by: AccountId;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceResourcePermission {
+  workspace_id: WorkspaceId;
+  resource_type: 'server' | 'vault_key';
+  resource_id: string;
+  account_id: AccountId;
+  can_connect: boolean;
+  created_at: string;
 }
 
 export interface ServerConfig {

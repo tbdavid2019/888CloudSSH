@@ -1175,7 +1175,7 @@ WARNING: This link could potentially be dangerous\`)){let t=window.open();if(t){
             <div id="connection-form-container"></div>
           </div>
           <div
-            class="mt-8 text-center text-[13px] text-muted opacity-60"
+            class="mt-8 text-center text-[13px] text-muted"
             data-i18n="auth.systemReady"
           >
             系统就绪，等待输入。
@@ -1183,7 +1183,7 @@ WARNING: This link could potentially be dangerous\`)){let t=window.open();if(t){
           <div class="mt-4 text-center">
             <a
               href="https://github.com/newbietan/CloudSSH"
-              class="text-[13px] text-primary opacity-60 hover:opacity-100 transition-colors tracking-widest uppercase"
+              class="text-[13px] text-primary hover:underline transition-colors tracking-widest uppercase"
               >[ GitHub Open Source ]</a
             >
           </div>

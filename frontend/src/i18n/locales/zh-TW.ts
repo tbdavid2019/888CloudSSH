@@ -1,3 +1,6 @@
+// Copyright (c) 2026 888CloudSSH contributors
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export const zhTW = {
   'language.label': '語言',
   'language.zhCN': '簡體中文',

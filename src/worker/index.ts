@@ -10,10 +10,18 @@ import {
   isGitHubUserAllowed,
 } from './auth';
 import { HTML } from './html';
+import {
+  handleEmailOtpRequest,
+  handleEmailOtpVerify,
+  handleRecoveryLogin,
+} from './email-auth-route';
 
 export { SSHSessionDO } from './durable-object';
 export { SSHShareDO } from './share-do';
 export { UserDBDO } from './user-db';
+export { AccountDirectoryDO } from './account-directory-do';
+export { AccountDO } from './account-do';
+export { WorkspaceDO } from './workspace-do';
 
 const RATE_LIMIT_MAX = 10; // max requests per window
 const RATE_LIMIT_WINDOW = 60000; // 1 minute window
@@ -179,6 +187,18 @@ export default {
 
       if (url.pathname === '/api/auth/github') {
         return handleGitHubAuth(request, env);
+      }
+
+      if (url.pathname === '/api/auth/email/request' && request.method === 'POST') {
+        return handleEmailOtpRequest(request, env);
+      }
+
+      if (url.pathname === '/api/auth/email/verify' && request.method === 'POST') {
+        return handleEmailOtpVerify(request, env);
+      }
+
+      if (url.pathname === '/api/auth/recovery' && request.method === 'POST') {
+        return handleRecoveryLogin(request, env);
       }
 
       if (url.pathname === '/api/auth/callback') {

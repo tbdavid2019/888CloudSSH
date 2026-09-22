@@ -1,4 +1,4 @@
-import type { Env, UserInfo } from '../types';
+import type { AccountId, AccountProfile, Env, UserInfo } from '../types';
 
 /**
  * GitHub OAuth 流程处理 + Session 中间件
@@ -32,6 +32,10 @@ function getBaseUrl(env: Env, request: Request): string {
 function getUserDBStub(env: Env, githubId: string | number): DurableObjectStub {
   const id = env.USER_DB.idFromName(githubId.toString());
   return env.USER_DB.get(id);
+}
+
+function getAccountStub(env: Env, accountId: AccountId): DurableObjectStub {
+  return env.ACCOUNT_DO.getByName(accountId);
 }
 
 interface GitHubAccessPolicy {
@@ -119,6 +123,27 @@ export async function getAuthenticatedUser(request: Request, env: Env): Promise<
   if (!res.ok) return null;
   const user = await res.json<UserInfo>();
   return isGitHubUserAllowed(env, user.github_id) ? user : null;
+}
+
+export async function getAuthenticatedAccount(
+  request: Request,
+  env: Env
+): Promise<AccountProfile | null> {
+  const cookies = parseCookies(request);
+  const sessionToken = cookies.session;
+  if (!sessionToken?.startsWith('acc:')) return null;
+  const [, rawAccountId] = sessionToken.split(':');
+  if (!rawAccountId?.startsWith('acc_')) return null;
+  const accountId = rawAccountId as AccountId;
+  const response = await getAccountStub(env, accountId).fetch(
+    new Request('http://internal/internal/account/session/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: sessionToken }),
+    })
+  );
+  if (!response.ok) return null;
+  return response.json<AccountProfile>();
 }
 
 // ==================== OAuth 路由处理 ====================
@@ -280,18 +305,29 @@ export async function handleLogout(request: Request, env: Env): Promise<Response
   const sessionToken = cookies.session;
 
   if (sessionToken) {
-    const [githubId] = sessionToken.split(':');
-    if (!githubId) {
-      return Response.json({ success: true });
+    if (sessionToken.startsWith('acc:')) {
+      const [, rawAccountId] = sessionToken.split(':');
+      if (rawAccountId?.startsWith('acc_')) {
+        await getAccountStub(env, rawAccountId as AccountId).fetch(
+          new Request('http://internal/internal/account/session/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: sessionToken }),
+          })
+        );
+      }
+    } else {
+      const [githubId] = sessionToken.split(':');
+      if (!githubId) return Response.json({ success: true });
+      const stub = getUserDBStub(env, githubId);
+      await stub.fetch(
+        new Request('http://internal/internal/session/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: sessionToken }),
+        })
+      );
     }
-    const stub = getUserDBStub(env, githubId);
-    await stub.fetch(
-      new Request('http://internal/internal/session/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: sessionToken }),
-      })
-    );
   }
 
   return new Response(JSON.stringify({ success: true }), {
@@ -306,6 +342,14 @@ export async function handleLogout(request: Request, env: Env): Promise<Response
  * GET /api/auth/me → 获取当前用户信息
  */
 export async function handleGetMe(request: Request, env: Env): Promise<Response> {
+  const account = await getAuthenticatedAccount(request, env);
+  if (account) {
+    return Response.json({
+      account_id: account.id,
+      email: account.email,
+      auth_method: 'email',
+    });
+  }
   const user = await getAuthenticatedUser(request, env);
   if (!user) {
     return Response.json({ error: 'Not authenticated' }, { status: 401 });
