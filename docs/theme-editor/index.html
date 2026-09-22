@@ -2181,9 +2181,9 @@
       <div class="preset-select-wrap">
         <select id="preset-select" class="preset-select">
           <option value="custom" data-i18n="editor.custom" disabled>自定义</option>
-          <option value="standard-dark">Standard Dark</option>
+          <option value="standard-dark" selected>Standard Dark</option>
           <option value="standard-light">Standard Light</option>
-          <option value="cyberpunk" selected>Cyberpunk</option>
+          <option value="cyberpunk">Cyberpunk</option>
           <option value="liquid-glass">Liquid Glass</option>
         </select>
         <span class="material-symbols-outlined" aria-hidden="true">expand_more</span>
@@ -2465,9 +2465,9 @@
               <div class="terminal-appbar__actions">
                 <select class="terminal-theme-select" aria-label="Theme">
                   <option value="custom" data-i18n="editor.custom" disabled>自定义</option>
-                  <option value="standard-dark">Standard Dark</option>
+                  <option value="standard-dark" selected>Standard Dark</option>
                   <option value="standard-light">Standard Light</option>
-                  <option value="cyberpunk" selected>Cyberpunk</option>
+                  <option value="cyberpunk">Cyberpunk</option>
                   <option value="liquid-glass">Liquid Glass</option>
                 </select>
                 <span class="material-symbols-outlined terminal-tool-icon">upload_file</span>
@@ -3668,7 +3668,7 @@ const VARIABLE_LABELS = {
 
 let theme = {};
 let terminalTheme = {};
-let activePreset = 'cyberpunk';
+let activePreset = 'standard-dark';
 let colorScheme = 'dark';
 let themeName = 'Cyberpunk';
 let appearance = {};
@@ -4245,7 +4245,7 @@ document.querySelectorAll('[data-current-year]').forEach((element) => {
 locale = resolveInitialLocale();
 try { localStorage.setItem(LOCALE_STORAGE_KEY, locale); } catch { /* storage may be unavailable */ }
 translateDocument();
-initTheme('cyberpunk');
+initTheme('standard-dark');
 </script>
 </body>
 </html>

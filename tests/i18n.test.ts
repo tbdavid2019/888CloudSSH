@@ -205,7 +205,7 @@ describe('主题在线编辑器国际化', () => {
 
     expect(html).toContain('data-i18n="terminal.askAISelection"');
     expect(html).toContain('data-i18n="agent.codeFill"');
-    expect(html).toContain('<option value="standard-dark">Standard Dark</option>');
+    expect(html).toContain('<option value="standard-dark" selected>Standard Dark</option>');
     expect(html).toContain('<option value="standard-light">Standard Light</option>');
     expect(html).toContain("select.addEventListener('change', (event) => initTheme(event.target.value))");
   });

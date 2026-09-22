@@ -730,9 +730,9 @@ function restoreTheme(): void {
     }
   }
 
-  localStorage.setItem('cloudssh_theme_selection', 'cyberpunk');
-  applyBuiltInTheme('cyberpunk');
-  syncThemeSelectors('cyberpunk');
+  localStorage.setItem('cloudssh_theme_selection', 'standard-dark');
+  applyBuiltInTheme('standard-dark');
+  syncThemeSelectors('standard-dark');
 }
 
 async function saveThemeToCloud(
@@ -921,6 +921,12 @@ async function init(): Promise<void> {
 }
 
 // 导出供 auth-form、server-list 和测试套件使用
-export { getTabManager, showTerminalWithNewTab, validateWsUrl, closeAllDrawers, showConnectionPage };
+export {
+  getTabManager,
+  showTerminalWithNewTab,
+  validateWsUrl,
+  closeAllDrawers,
+  showConnectionPage,
+};
 
 init();

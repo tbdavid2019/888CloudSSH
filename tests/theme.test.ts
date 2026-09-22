@@ -349,7 +349,7 @@ describe('Standard 主题入口和编辑器', () => {
     expect(appHtml).toContain('<option value="standard-dark">Standard Dark</option>');
     expect(appHtml).toContain('<option value="standard-light">Standard Light</option>');
     expect(editorHtml).toContain('<select id="preset-select" class="preset-select">');
-    expect(editorHtml).toContain('<option value="standard-dark">Standard Dark</option>');
+    expect(editorHtml).toContain('<option value="standard-dark" selected>Standard Dark</option>');
     expect(editorHtml).toContain('<option value="standard-light">Standard Light</option>');
     expect(editorHtml).toContain('colorScheme,');
   });
@@ -375,6 +375,9 @@ describe('Standard 主题入口和编辑器', () => {
     expect(mainSource).toContain('LEGACY_THEME_MIGRATION');
     expect(mainSource).toContain("glacier: 'standard-dark'");
     expect(mainSource).toContain("'standard-dark'");
+    expect(mainSource).toContain("localStorage.setItem('cloudssh_theme_selection', 'standard-dark')");
+    expect(editorHtml).toContain('<option value="standard-dark" selected>Standard Dark</option>');
+    expect(editorHtml).toContain("let activePreset = 'standard-dark'");
     expect(workerSource).toContain("url.pathname === '/api/user/theme'");
     expect(userDbSource).toContain('CREATE TABLE IF NOT EXISTS user_themes');
     expect(userDbSource).not.toContain('handleDeleteTheme');
