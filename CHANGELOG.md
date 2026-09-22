@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- 修正安全性與隱私問題：徹底移除 `/api/config` 與登入框預填 `bootstrapEmail` 的邏輯，登入輸入框保持全空，避免對外洩漏管理員 Email。
 - 修正語言切換按鈕在英文模式下錯誤指向簡體中文的問題，預設切換為繁體中文。
 - 修正 `email-auth-route` 未回傳 `challenge_id` 導致驗證失敗的問題。
 - 修正 `AccountDO` 與 `UserDBDO` 間的 `/internal/oauth-user` 路由與帳號 ID 解析，修復 `/api/auth/me` 1101 例外。

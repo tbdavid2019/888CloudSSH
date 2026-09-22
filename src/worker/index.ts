@@ -372,7 +372,6 @@ export default {
           githubAuthRequired: isGitHubAuthRequired(env),
           authRequired,
           emailAuthEnabled: true,
-          bootstrapEmail: env.BOOTSTRAP_OWNER_EMAIL || '',
           sshSharingEnabled: isSSHSharingEnabled(env),
         });
       }

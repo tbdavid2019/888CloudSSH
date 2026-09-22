@@ -6,7 +6,6 @@ import { notify } from './ui-feedback';
 
 export interface EmailLoginFormOptions {
   container: HTMLElement;
-  bootstrapEmail?: string;
   turnstileEnabled?: boolean;
   turnstileSitekey?: string;
   onLoginSuccess: (user: any) => void;
@@ -28,11 +27,6 @@ export class EmailLoginForm {
   }
 
   public render(): void {
-    const defaultEmail =
-      this.options.bootstrapEmail ||
-      localStorage.getItem('cloudssh_last_email') ||
-      '';
-
     // pi-lens-ignore: no-inner-html
     this.options.container.innerHTML = `
       <div id="email-login-panel" class="space-y-5">
@@ -47,7 +41,8 @@ export class EmailLoginForm {
                 class="terminal-input text-[13px] w-full"
                 type="email"
                 placeholder="you@example.com"
-                value="${defaultEmail}"
+                value=""
+                autocomplete="email"
                 required
               />
             </div>
@@ -120,7 +115,8 @@ export class EmailLoginForm {
                 class="terminal-input text-[13px] w-full"
                 type="email"
                 placeholder="you@example.com"
-                value="${defaultEmail}"
+                value=""
+                autocomplete="email"
                 required
               />
             </div>
@@ -291,7 +287,6 @@ export class EmailLoginForm {
       }
 
       this.challengeId = data.challenge_id || null;
-      localStorage.setItem('cloudssh_last_email', email);
 
       notify(t('auth.otpSent'), { variant: 'info' });
 

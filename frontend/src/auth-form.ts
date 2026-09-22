@@ -85,7 +85,6 @@ export class ConnectionForm {
     githubAuthRequired: boolean;
     authRequired?: boolean;
     emailAuthEnabled?: boolean;
-    bootstrapEmail?: string;
   } | null = null;
 
   constructor(options: ConnectionFormOptions) {
@@ -212,7 +211,6 @@ export class ConnectionForm {
     if (!container) return;
     this.emailLoginForm = new EmailLoginForm({
       container,
-      bootstrapEmail: this.config?.bootstrapEmail,
       turnstileEnabled: this.turnstileEnabled,
       turnstileSitekey: this.turnstileSitekey,
       onLoginSuccess: (user) => {
