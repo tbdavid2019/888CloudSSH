@@ -6,7 +6,8 @@
 
 ### Added
 
-- 新增 `ALLOWED_EMAILS = "oobwei@gmail.com"` 白名單設定，允許多位工作區成員使用 Email OTP 登入。
+- 新增 `ALLOWED_EMAILS = "oobwei@gmail.com,ooboob@gmail.com"` 白名單設定，允許多位工作區成員使用 Email OTP 登入。
+- 更新登入頁面、工作區與終端頁腳的開源倉庫與文件連結為 `https://github.com/tbdavid2019/888CloudSSH`。
 - 新增繁體中文優先語言偵測與切換修復（瀏覽器偏好包含 `zh` / `zh-TW` 時自動判定為繁體中文，避免按鈕與文案預設顯示簡體中文）。
 - 前端實作完整工作區 Email OTP 登入介面（`EmailLoginForm`），支援驗證碼發送、60 秒倒數計時、自動焦點切換與救援碼應急登入。
 - 新增首次登入 10 組一次性應急救援碼彈窗（支援一鍵複製全部與匯出 `.txt` 文字檔備份）。
