@@ -6,6 +6,9 @@
 
 ### Added
 
+- 新增使用者自主緊急救援碼管理功能：
+  - 後端提供 `GET /api/user/recovery-codes/status`（查詢剩餘有效組數）與 `POST /api/user/recovery-codes/regenerate`（作廢舊碼並重新生成 10 組全新救援碼）。
+  - 前端使用者空間頂部導覽列新增「緊急救援碼」按鈕（盾牌圖示），登入使用者可隨時查看有效救援碼剩餘數量，並支援一鍵重新生成、複製全部與下載 `.txt` 備份檔。
 - 設定 Resend API 密鑰與寄件網域 `no-reply@vip.david888.com`，全面啟用真實 Email OTP 發信。
 
 ### Fixed

@@ -260,6 +260,7 @@ function showAuthSection(): void {
   // 匿名模式/退出登录：隐藏 AI Agent 按钮（桌面分段条与移动端菜单）
   document.getElementById('agent-toggle-btn')?.classList.add('hidden');
   document.getElementById('mobile-agent-btn')?.classList.add('hidden');
+  document.getElementById('recovery-codes-btn')?.classList.add('hidden');
 
   if (!connectionForm) {
     connectionForm = new ConnectionForm({

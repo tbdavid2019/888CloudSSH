@@ -15,6 +15,8 @@ import {
   handleEmailOtpRequest,
   handleEmailOtpVerify,
   handleRecoveryLogin,
+  handleRecoveryRegenerate,
+  handleRecoveryStatus,
 } from './email-auth-route';
 
 export { SSHSessionDO } from './durable-object';
@@ -240,6 +242,16 @@ export default {
 
       if (url.pathname === '/api/user/theme') {
         return handleThemeRoute(request, env);
+      }
+
+      // ==================== Recovery Codes Routes (需认证) ====================
+
+      if (url.pathname === '/api/user/recovery-codes/status' && request.method === 'GET') {
+        return handleRecoveryStatus(request, env);
+      }
+
+      if (url.pathname === '/api/user/recovery-codes/regenerate' && request.method === 'POST') {
+        return handleRecoveryRegenerate(request, env);
       }
 
       // ==================== known_hosts Routes (需认证) ====================

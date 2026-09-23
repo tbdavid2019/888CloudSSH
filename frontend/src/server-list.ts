@@ -1,6 +1,7 @@
 import { copyTextToClipboard } from './clipboard';
+import { showRecoveryCodesModal } from './email-login';
 import { isValidTunnelHostname, maskIPAddress } from './host-display';
-import { onLocaleChange, t } from './i18n';
+import { onLocaleChange, t, translateDocument } from './i18n';
 import { osDisplayName, osIconSvg } from './os-icons';
 import { parsePort } from './port';
 import { populateRegionSelect, regionLabel } from './regions';
@@ -211,11 +212,158 @@ export class ServerList {
     container.appendChild(span);
   }
 
+  // ==================== 救援码管理 ====================
+
+  private bindRecoveryCodesButton(): void {
+    const recoveryBtn = document.getElementById('recovery-codes-btn');
+    if (!recoveryBtn) return;
+    if (this.user.account_id) {
+      recoveryBtn.classList.remove('hidden');
+      recoveryBtn.onclick = () => void this.showRecoveryCodesManager();
+    } else {
+      recoveryBtn.classList.add('hidden');
+    }
+  }
+
+  private async showRecoveryCodesManager(): Promise<void> {
+    if (document.getElementById('recovery-codes-manager-modal')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm';
+    overlay.id = 'recovery-codes-manager-modal';
+
+    // pi-lens-ignore: no-inner-html
+    overlay.innerHTML = `
+      <div class="cyber-box w-full max-w-md p-6 relative shadow-2xl bg-surface border border-dim text-on-surface">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2 text-[var(--accent)]">
+            <span class="material-symbols-outlined" style="font-size: 24px;">shield</span>
+            <h3 class="text-sm font-bold tracking-[0.1em] uppercase" data-i18n="auth.manageRecoveryCodes">${t('auth.manageRecoveryCodes')}</h3>
+          </div>
+          <button id="close-recovery-manager-x" class="text-muted hover:text-on-surface p-1 transition-colors cursor-pointer" type="button" aria-label="${t('common.close')}">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+
+        <div id="recovery-manager-body" class="py-2">
+          <div class="flex items-center justify-center py-6 text-muted">
+            <span class="material-symbols-outlined animate-spin mr-2">progress_activity</span>
+            <span class="text-xs">Loading...</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    translateDocument(overlay);
+    document.body.appendChild(overlay);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    const close = () => {
+      window.removeEventListener('keydown', onKeyDown);
+      overlay.remove();
+    };
+
+    overlay.querySelector('#close-recovery-manager-x')?.addEventListener('click', close);
+
+    try {
+      const res = await fetch('/api/user/recovery-codes/status');
+      if (!res.ok) throw new Error('Failed to load status');
+      const data = (await res.json()) as { total: number; remaining: number; enrolled: boolean; supported?: boolean };
+      const bodyEl = overlay.querySelector('#recovery-manager-body');
+      if (!bodyEl) return;
+
+      const remainingText = data.enrolled
+        ? (data.remaining > 0
+            ? t('auth.recoveryCodesActiveCount', { remaining: String(data.remaining), total: String(data.total) })
+            : `<span class="text-error font-bold">${t('auth.noRecoveryCodesLeft')}</span>`)
+        : `<span class="text-warning font-bold">${t('auth.notEnrolledRecovery')}</span>`;
+
+      // pi-lens-ignore: no-inner-html
+      bodyEl.innerHTML = `
+        <div class="p-3 bg-elevated border border-dim mb-4 text-xs">
+          <div class="text-xs text-muted mb-1" data-i18n="auth.currentStatus">${t('auth.currentStatus')}</div>
+          <div class="text-sm font-mono font-semibold">${remainingText}</div>
+        </div>
+
+        <p class="text-xs text-muted leading-relaxed mb-5" data-i18n="auth.recoveryCodesDesc">
+          ${t('auth.recoveryCodesDesc')}
+        </p>
+
+        <div class="flex flex-col gap-2">
+          <button id="regenerate-recovery-btn" type="button" class="connect-btn w-full py-2.5 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 cursor-pointer">
+            <span class="material-symbols-outlined" style="font-size: 16px;">autorenew</span>
+            <span>${data.enrolled ? t('auth.regenerateCodes') : t('auth.generateCodes')}</span>
+          </button>
+          <button id="close-recovery-manager-btn" type="button" class="cyber-button w-full py-2 text-xs font-bold border border-dim cursor-pointer">
+            <span data-i18n="common.close">${t('common.close')}</span>
+          </button>
+        </div>
+      `;
+
+      translateDocument(bodyEl);
+      bodyEl.querySelector('#close-recovery-manager-btn')?.addEventListener('click', close);
+
+      const regenBtn = bodyEl.querySelector('#regenerate-recovery-btn') as HTMLButtonElement | null;
+      regenBtn?.addEventListener('click', async () => {
+        const confirmed = await confirmAction({
+          title: t('auth.manageRecoveryCodes'),
+          message: t('auth.confirmRegenerateRecovery'),
+          confirmText: t('common.confirm'),
+          cancelText: t('common.cancel'),
+          variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        regenBtn.disabled = true;
+        regenBtn.textContent = t('auth.regenerating');
+
+        try {
+          const regenRes = await fetch('/api/user/recovery-codes/regenerate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (!regenRes.ok) {
+            const err = await regenRes.json().catch(() => ({}));
+            throw new Error((err as { error?: string }).error || 'Failed to regenerate');
+          }
+          const regenData = (await regenRes.json()) as { success: boolean; codes: string[] };
+          close();
+          notify(t('auth.regenerateSuccess'), { variant: 'success' });
+          showRecoveryCodesModal(regenData.codes, () => {}, {
+            dismissTextKey: 'auth.savedAndClose',
+          });
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : 'Regeneration failed';
+          notify(errorMsg, { variant: 'danger' });
+          regenBtn.disabled = false;
+          regenBtn.textContent = data.enrolled ? t('auth.regenerateCodes') : t('auth.generateCodes');
+        }
+      });
+    } catch {
+      const bodyEl = overlay.querySelector('#recovery-manager-body');
+      if (bodyEl) {
+        // pi-lens-ignore: no-inner-html
+        bodyEl.innerHTML = `
+          <div class="p-3 text-xs text-error mb-4">Failed to load recovery codes status</div>
+          <button id="close-recovery-manager-btn" type="button" class="cyber-button w-full py-2 text-xs font-bold border border-dim cursor-pointer">${t('common.close')}</button>
+        `;
+        bodyEl.querySelector('#close-recovery-manager-btn')?.addEventListener('click', close);
+      }
+    }
+  }
+
   // ==================== 事件绑定 ====================
 
   private bindEvents(): void {
     // 退出登录
     document.getElementById('logout-btn')?.addEventListener('click', () => this.logout());
+
+    // 紧急救援码管理
+    this.bindRecoveryCodesButton();
 
     // 添加服务器按钮
     document

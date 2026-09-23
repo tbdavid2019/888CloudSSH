@@ -7,6 +7,7 @@ import {
   randomBase64Url,
 } from './email-auth';
 import { buildEmailOtpMessage, createResendEmailSender } from './resend';
+import { getAuthenticatedUser } from './auth';
 import type { AccountId, Env } from '../types';
 
 function hasSameOrigin(request: Request): boolean {
@@ -311,3 +312,43 @@ export async function handleRecoveryLogin(request: Request, env: Env): Promise<R
     },
   });
 }
+
+export async function handleRecoveryStatus(request: Request, env: Env): Promise<Response> {
+  const user = await getAuthenticatedUser(request, env);
+  if (!user) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+  if (!user.account_id) {
+    return Response.json({ supported: false, total: 0, remaining: 0, enrolled: false });
+  }
+  const accountStub = getAccountStub(env, user.account_id as AccountId);
+  const statusRes = await accountStub.fetch(
+    new Request('http://internal/internal/account/recovery/status', { method: 'GET' })
+  );
+  if (!statusRes.ok) {
+    return Response.json({ error: 'Failed to retrieve recovery status' }, { status: 500 });
+  }
+  const data = (await statusRes.json()) as Record<string, unknown>;
+  return Response.json({ supported: true, ...data });
+}
+
+export async function handleRecoveryRegenerate(request: Request, env: Env): Promise<Response> {
+  if (!hasSameOrigin(request)) return new Response('Forbidden', { status: 403 });
+  const user = await getAuthenticatedUser(request, env);
+  if (!user) return Response.json({ error: 'Not authenticated' }, { status: 401 });
+  if (!user.account_id) {
+    return Response.json({ error: 'Recovery codes are only available for email accounts' }, { status: 400 });
+  }
+  const accountStub = getAccountStub(env, user.account_id as AccountId);
+  const regenRes = await accountStub.fetch(
+    new Request('http://internal/internal/account/recovery/regenerate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: user.account_id }),
+    })
+  );
+  if (!regenRes.ok) {
+    return Response.json({ error: 'Failed to regenerate recovery codes' }, { status: 500 });
+  }
+  const data = await regenRes.json<{ codes?: string[] }>();
+  return Response.json({ success: true, codes: data.codes || [] });
+}
+

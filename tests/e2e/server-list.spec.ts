@@ -159,3 +159,78 @@ test('点击克隆服务器按钮打开预填表单并附带复制后缀', async
   await expect(page.locator('#server-port')).toHaveValue('22');
   await expect(page.locator('#server-username')).toHaveValue('deploy');
 });
+
+test('邮箱登录用户展示救援码管理入口，并支持查看状态与重新生成', async ({ page }) => {
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 1,
+        github_id: 0,
+        username: 'user',
+        email: 'user@example.com',
+        account_id: 'acc_test123',
+        avatar_url: '',
+      }),
+    })
+  );
+  await page.route('**/api/user/recovery-codes/status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ supported: true, total: 10, remaining: 7, enrolled: true }),
+    })
+  );
+  await page.route('**/api/user/recovery-codes/regenerate', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        codes: [
+          'AAAA-1111',
+          'BBBB-2222',
+          'CCCC-3333',
+          'DDDD-4444',
+          'EEEE-5555',
+          'FFFF-6666',
+          'GGGG-7777',
+          'HHHH-8888',
+          'IIII-9999',
+          'JJJJ-0000',
+        ],
+      }),
+    })
+  );
+
+  await page.goto('/?lang=zh-CN');
+
+  const recoveryBtn = page.locator('#recovery-codes-btn');
+  await expect(recoveryBtn).toBeVisible();
+  await recoveryBtn.click();
+
+  const managerModal = page.locator('#recovery-codes-manager-modal');
+  await expect(managerModal).toBeVisible();
+  await expect(managerModal).toContainText('7 / 10');
+
+  const regenBtn = managerModal.locator('#regenerate-recovery-btn');
+  await expect(regenBtn).toBeVisible();
+  await regenBtn.click();
+
+  // Confirm dialog appears
+  const confirmDialog = page.locator('.app-dialog');
+  await expect(confirmDialog).toBeVisible();
+  await confirmDialog.locator('.app-dialog__button--confirm').click();
+
+  // Fresh recovery codes modal is shown with the 10 codes
+  const backupModal = page.locator('#recovery-codes-modal');
+  await expect(backupModal).toBeVisible();
+  await expect(backupModal).toContainText('AAAA-1111');
+  await expect(backupModal).toContainText('JJJJ-0000');
+
+  // Dismiss button closes the backup modal
+  await backupModal.locator('#dismiss-recovery-codes-btn').click();
+  await expect(backupModal).not.toBeVisible();
+});
+

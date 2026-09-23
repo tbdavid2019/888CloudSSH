@@ -1,7 +1,7 @@
 // Copyright (c) 2026 888CloudSSH contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { t, translateDocument } from './i18n';
+import { t, translateDocument, type TranslationKey } from './i18n';
 import { notify } from './ui-feedback';
 
 export interface EmailLoginFormOptions {
@@ -471,12 +471,17 @@ export class EmailLoginForm {
 /**
  * 彈出一次性救援碼備份對話框
  */
-export function showRecoveryCodesModal(codes: string[], onClose: () => void): void {
+export function showRecoveryCodesModal(
+  codes: string[],
+  onClose: () => void,
+  options?: { dismissTextKey?: TranslationKey }
+): void {
   const overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm';
   overlay.id = 'recovery-codes-modal';
 
   const codeListFormatted = codes.map((c, i) => `${i + 1}. ${c}`).join('\n');
+  const dismissKey = options?.dismissTextKey || 'auth.enterWorkspace';
 
   // pi-lens-ignore: no-inner-html
   overlay.innerHTML = `
@@ -505,7 +510,7 @@ export function showRecoveryCodesModal(codes: string[], onClose: () => void): vo
           </button>
         </div>
         <button id="dismiss-recovery-codes-btn" type="button" class="connect-btn w-full py-2.5 text-xs font-bold tracking-[0.1em] uppercase mt-1">
-          <span data-i18n="auth.enterWorkspace">我已妥善保存，進入工作區</span>
+          <span data-i18n="${dismissKey}">${t(dismissKey)}</span>
         </button>
       </div>
     </div>

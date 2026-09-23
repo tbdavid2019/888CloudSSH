@@ -87,6 +87,15 @@ export class AccountDO {
     if (url.pathname === '/internal/account/recovery/verify' && request.method === 'POST') {
       return this.handleRecoveryVerify(request);
     }
+    if (
+      url.pathname === '/internal/account/recovery/status' &&
+      (request.method === 'GET' || request.method === 'POST')
+    ) {
+      return this.handleRecoveryStatus();
+    }
+    if (url.pathname === '/internal/account/recovery/regenerate' && request.method === 'POST') {
+      return this.handleRecoveryRegenerate(request);
+    }
     if (url.pathname === '/internal/account/workspaces' && request.method === 'GET') {
       return Response.json({ workspaces: this.listWorkspaces() });
     }
@@ -226,6 +235,46 @@ export class AccountDO {
     this.db.exec('UPDATE recovery_codes SET consumed_at = ? WHERE id = ?', now, matched.id);
     this.db.exec('UPDATE recovery_state SET failed_attempts = 0, locked_until = NULL WHERE id = 1');
     return Response.json({ verified: true });
+  }
+
+  private async handleRecoveryStatus(): Promise<Response> {
+    const totalRow = this.db.exec('SELECT COUNT(*) AS count FROM recovery_codes').one() as
+      | { count: number }
+      | undefined;
+    const remainingRow = this.db
+      .exec('SELECT COUNT(*) AS count FROM recovery_codes WHERE consumed_at IS NULL')
+      .one() as { count: number } | undefined;
+    const total = totalRow?.count || 0;
+    const remaining = remainingRow?.count || 0;
+    return Response.json({
+      total,
+      remaining,
+      enrolled: total > 0,
+    });
+  }
+
+  private async handleRecoveryRegenerate(request: Request): Promise<Response> {
+    const body = await request.json<{ account_id?: unknown }>();
+    if (typeof body.account_id !== 'string' || !body.account_id.startsWith('acc_')) {
+      return Response.json({ error: 'Recovery code regeneration unavailable' }, { status: 400 });
+    }
+    const codes = generateRecoveryCodes();
+    const now = Date.now();
+    const recoverySecret = this.getRecoverySecret();
+    this.db.exec('DELETE FROM recovery_codes');
+    for (const code of codes) {
+      this.db.exec(
+        'INSERT INTO recovery_codes (id, code_hash, created_at) VALUES (?, ?, ?)',
+        crypto.randomUUID(),
+        await hashRecoveryCode(code, body.account_id, recoverySecret),
+        now
+      );
+    }
+    this.db.exec(
+      `INSERT INTO recovery_state (id, failed_attempts, locked_until) VALUES (1, 0, NULL)
+       ON CONFLICT(id) DO UPDATE SET failed_attempts = 0, locked_until = NULL`
+    );
+    return Response.json({ codes });
   }
 
   private listWorkspaces(): Array<{ workspace_id: string; role: string }> {

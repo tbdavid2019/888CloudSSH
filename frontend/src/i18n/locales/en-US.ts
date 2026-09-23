@@ -111,6 +111,21 @@ export const enUS: Record<keyof typeof zhCN, string> = {
   'auth.downloadCodes': 'Download Backup File',
   'auth.enterWorkspace': 'I Have Saved Them, Enter Workspace',
   'auth.codesCopied': 'Recovery codes copied to clipboard',
+  'auth.recoveryCodes': 'Recovery Codes',
+  'auth.manageRecoveryCodes': 'Manage Recovery Codes',
+  'auth.recoveryCodesActiveCount': 'Active recovery codes: {remaining} of {total}',
+  'auth.noRecoveryCodesLeft': 'No recovery codes remaining. Please regenerate now!',
+  'auth.notEnrolledRecovery': 'No recovery codes generated yet. Click below to generate.',
+  'auth.recoveryCodesDesc':
+    'Recovery codes can be used to sign in when you cannot receive email verification codes. Each code can only be used once. For security, codes are stored as one-way hashes and cannot be viewed again. If you lose them, you can regenerate 10 new codes (old codes will become invalid immediately).',
+  'auth.regenerateCodes': 'Regenerate 10 Recovery Codes',
+  'auth.generateCodes': 'Generate 10 Recovery Codes',
+  'auth.confirmRegenerateRecovery':
+    'Are you sure you want to regenerate recovery codes? All existing recovery codes will be invalidated, and you must save the 10 new codes.',
+  'auth.regenerating': 'Generating…',
+  'auth.regenerateSuccess': 'Successfully generated 10 new recovery codes!',
+  'auth.savedAndClose': 'I Have Saved Them, Close',
+  'auth.currentStatus': 'Current Status',
   'auth.testOtpNotice': 'Test mode: OTP code is {code} (RESEND_API_KEY not configured)',
   'auth.githubRequired': 'This CloudSSH instance requires GitHub sign-in',
   'auth.githubRequiredHint':

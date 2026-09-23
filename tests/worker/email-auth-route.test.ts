@@ -3,6 +3,8 @@ import {
   handleEmailOtpRequest,
   handleEmailOtpVerify,
   handleRecoveryLogin,
+  handleRecoveryRegenerate,
+  handleRecoveryStatus,
 } from '../../src/worker/email-auth-route';
 
 function request(path: string, body: unknown): Request {
@@ -171,4 +173,102 @@ describe('email auth routes', () => {
     const data = await response.json<{ error: string }>();
     expect(data.error).toContain('Too many requests');
   });
+
+  it('checks recovery codes status for authenticated email accounts', async () => {
+    const accountFetch = vi.fn().mockImplementation(async (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === '/internal/account/session/verify') {
+        return Response.json({ id: 'acc_test', account_id: 'acc_test', email: 'user@example.com' });
+      }
+      if (url.pathname === '/internal/account/recovery/status') {
+        return Response.json({ total: 10, remaining: 8, enrolled: true });
+      }
+      return new Response('Not found', { status: 404 });
+    });
+    const env = {
+      ACCOUNT_DO: { getByName: () => ({ fetch: accountFetch }) },
+      USER_DB: {
+        idFromName: () => 'id',
+        get: () => ({ fetch: vi.fn().mockResolvedValue(Response.json({ id: 1 })) }),
+      },
+    } as any;
+
+    const req = new Request('https://cloudssh.test/api/user/recovery-codes/status', {
+      headers: {
+        Cookie: 'session=acc:acc_test:token123',
+      },
+    });
+
+    const response = await handleRecoveryStatus(req, env);
+    expect(response.status).toBe(200);
+    const data = await response.json<{ supported: boolean; total: number; remaining: number; enrolled: boolean }>();
+    expect(data.supported).toBe(true);
+    expect(data.total).toBe(10);
+    expect(data.remaining).toBe(8);
+    expect(data.enrolled).toBe(true);
+  });
+
+  it('returns supported=false when checking recovery status for non-email accounts', async () => {
+    const userDbFetch = vi.fn().mockImplementation(async (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === '/internal/session/verify') {
+        return Response.json({ id: 1, github_id: 12345, username: 'testuser' });
+      }
+      return new Response('Not found', { status: 404 });
+    });
+    const env = {
+      USER_DB: {
+        idFromName: () => 'id',
+        get: () => ({ fetch: userDbFetch }),
+      },
+    } as any;
+
+    const req = new Request('https://cloudssh.test/api/user/recovery-codes/status', {
+      headers: {
+        Cookie: 'session=12345:token123',
+      },
+    });
+
+    const response = await handleRecoveryStatus(req, env);
+    expect(response.status).toBe(200);
+    const data = await response.json<{ supported: boolean }>();
+    expect(data.supported).toBe(false);
+  });
+
+  it('regenerates recovery codes for authenticated email accounts', async () => {
+    const newCodes = ['AAAA-1111', 'BBBB-2222'];
+    const accountFetch = vi.fn().mockImplementation(async (req: Request) => {
+      const url = new URL(req.url);
+      if (url.pathname === '/internal/account/session/verify') {
+        return Response.json({ id: 'acc_test', account_id: 'acc_test', email: 'user@example.com' });
+      }
+      if (url.pathname === '/internal/account/recovery/regenerate') {
+        return Response.json({ codes: newCodes });
+      }
+      return new Response('Not found', { status: 404 });
+    });
+    const env = {
+      ACCOUNT_DO: { getByName: () => ({ fetch: accountFetch }) },
+      USER_DB: {
+        idFromName: () => 'id',
+        get: () => ({ fetch: vi.fn().mockResolvedValue(Response.json({ id: 1 })) }),
+      },
+    } as any;
+
+    const req = new Request('https://cloudssh.test/api/user/recovery-codes/regenerate', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://cloudssh.test',
+        Cookie: 'session=acc:acc_test:token123',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const response = await handleRecoveryRegenerate(req, env);
+    expect(response.status).toBe(200);
+    const data = await response.json<{ success: boolean; codes: string[] }>();
+    expect(data.success).toBe(true);
+    expect(data.codes).toEqual(newCodes);
+  });
 });
+

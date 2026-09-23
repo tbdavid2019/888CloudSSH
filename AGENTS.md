@@ -246,6 +246,8 @@ Required for optional features (configured in `wrangler.toml` or Cloudflare Dash
 | `/api/shares/:id/audit` | GET | Yes | Read the paginated audit log for an owned share |
 | `/api/share/claim` | POST | No | Atomically claim a capability token and return a short-lived WebSocket ticket |
 | `/api/user/theme` | GET/PUT | Yes | Get or replace the signed-in user's single custom theme |
+| `/api/user/recovery-codes/status` | GET | Yes | Get recovery codes count and enrollment status for email accounts |
+| `/api/user/recovery-codes/regenerate` | POST | Yes | Invalidate existing recovery codes and regenerate 10 fresh codes |
 | `/api/known-hosts` | GET/POST/DELETE | Yes | Known host fingerprint CRUD (TOFU) |
 | `/api/snippets` | GET/POST | Yes | List or create command snippets (per-user, max 100) |
 | `/api/snippets/:id` | PUT/DELETE | Yes | Update or delete a command snippet (ownership scoped by user_id) |
