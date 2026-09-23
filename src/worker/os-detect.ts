@@ -155,6 +155,7 @@ export interface DetectRemoteOSContext {
   serverId: number;
   userId: string;
   githubId: string;
+  instanceId?: string;
   env?: Env | null;
   executeCommand: (command: string, timeout: number) => Promise<{ stdout: string }>;
   onOSDetected?: (os: string) => void;
@@ -178,17 +179,21 @@ export async function detectAndPersistRemoteOS(
 
     if (ctx.env) {
       try {
-        const userDb = ctx.env.USER_DB as any;
-        const stub = userDb.get(userDb.idFromName(ctx.githubId));
-        const res = await stub.fetch(
-          new Request(`http://internal/internal/servers/${ctx.serverId}/os`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: Number(ctx.userId), os }),
-          })
-        );
-        if (!res.ok) {
-          ctx.sendDebug?.(`OS detect persist failed: ${res.status}`);
+        const userDbTarget =
+          ctx.instanceId || (ctx.githubId && ctx.githubId !== '0' ? ctx.githubId : null);
+        if (userDbTarget) {
+          const userDb = ctx.env.USER_DB as any;
+          const stub = userDb.get(userDb.idFromName(userDbTarget));
+          const res = await stub.fetch(
+            new Request(`http://internal/internal/servers/${ctx.serverId}/os`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: Number(ctx.userId), os }),
+            })
+          );
+          if (!res.ok) {
+            ctx.sendDebug?.(`OS detect persist failed: ${res.status}`);
+          }
         }
       } catch (e) {
         ctx.sendDebug?.(`OS detect persist error: ${e instanceof Error ? e.message : String(e)}`);

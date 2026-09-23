@@ -55,6 +55,8 @@ export interface SSHConnectionConfig {
   knownHostIdentity?: string;
   userId?: string;
   githubId?: string;
+  accountId?: string;
+  instanceId?: string;
   /** 已保存服务器的记录 ID（token 路径下由 handleConnectServer 填充，供 OS 检测持久化） */
   serverId?: number;
   /** 已检测并持久化的操作系统标识（已设置则连接时跳过重复检测） */

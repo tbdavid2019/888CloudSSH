@@ -100,6 +100,11 @@ export class SSHSessionDO {
   private sessionBaselines: Map<SSHSession, { latencyMs: number; colo: string }> = new Map();
   /** 上一代 resume token：容忍轮换帧在弱网下丢失后的客户端重试。 */
   private sessionToPrevResumeToken: Map<SSHSession, string> = new Map();
+  /** 经由 Worker 校验传入的登录用户身份信息（供直连模式 AI Agent 解析对应 UserDB） */
+  private pendingAuthUsers: Map<
+    WebSocket,
+    { userId?: string; instanceId?: string; accountId?: string; githubId?: string }
+  > = new Map();
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -185,6 +190,19 @@ export class SSHSessionDO {
     const shareDeviceKey = request.headers.get('x-share-device-key');
     if (shareDeviceKey) {
       this.pendingDevicePubKeys.set(server, shareDeviceKey);
+    }
+
+    const authUserId = request.headers.get('x-authenticated-user-id');
+    const authInstanceId = request.headers.get('x-authenticated-instance-id');
+    const authAccountId = request.headers.get('x-authenticated-account-id');
+    const authGithubId = request.headers.get('x-authenticated-github-id');
+    if (authUserId || authInstanceId || authAccountId || authGithubId) {
+      this.pendingAuthUsers.set(server, {
+        userId: authUserId || undefined,
+        instanceId: authInstanceId || undefined,
+        accountId: authAccountId || undefined,
+        githubId: authGithubId || undefined,
+      });
     }
 
     this.state.acceptWebSocket(server);
@@ -287,12 +305,24 @@ export class SSHSessionDO {
       }
 
       const config = msg as SSHConnectionConfig;
-      // Strip userId from client-supplied config (anonymous flow — userId only set via trusted token flow)
+      // Strip client-supplied auth identifiers
       delete config.userId;
+      delete config.githubId;
+      delete config.accountId;
+      delete config.instanceId;
       // Jump chains are resolved only from authenticated saved-server tokens.
       delete config.jumpHosts;
       delete config.knownHostIdentity;
       delete config.sessionPolicy;
+
+      const auth = this.pendingAuthUsers.get(ws);
+      if (auth) {
+        if (auth.userId) config.userId = auth.userId;
+        if (auth.instanceId) config.instanceId = auth.instanceId;
+        if (auth.accountId) config.accountId = auth.accountId;
+        if (auth.githubId) config.githubId = auth.githubId;
+      }
+      this.pendingAuthUsers.delete(ws);
 
       if (config.transportType === 'cf_tunnel') {
         if (!config.host && config.cfTunnelHost) {
@@ -391,6 +421,7 @@ export class SSHSessionDO {
     this.websocketColos.delete(ws);
     this.pendingSessionNames.delete(ws);
     this.pendingDevicePubKeys.delete(ws);
+    this.pendingAuthUsers.delete(ws);
   }
 
   async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
@@ -793,6 +824,7 @@ export class SSHSessionDO {
             ownsWebSocket: false,
             allowKeyboardInteractive: false,
             waitUntil: (promise) => this.state.waitUntil(promise),
+            instanceId: config.instanceId || config.accountId || config.githubId,
           }
         );
         chainSessions.push(hopSession);
@@ -832,7 +864,10 @@ export class SSHSessionDO {
         this.env,
         config.userId,
         config.githubId,
-        { waitUntil: (promise) => this.state.waitUntil(promise) }
+        {
+          waitUntil: (promise) => this.state.waitUntil(promise),
+          instanceId: config.instanceId || config.accountId || config.githubId,
+        }
       );
       chainSessions.push(session);
       this.sessionChains.set(ws, chainSessions);

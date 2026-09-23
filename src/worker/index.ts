@@ -1130,7 +1130,8 @@ async function handleSSHConnection(request: Request, env: Env): Promise<Response
     return new Response('Forbidden', { status: 403 });
   }
 
-  if (isAuthRequired(env) && !(await getAuthenticatedUser(request, env))) {
+  const authenticatedUser = await getAuthenticatedUser(request, env);
+  if (isAuthRequired(env) && !authenticatedUser) {
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
@@ -1150,6 +1151,24 @@ async function handleSSHConnection(request: Request, env: Env): Promise<Response
   const headers = new Headers(request.headers);
   headers.set('x-cloudflare-colo', (request as any).cf?.colo || 'UNKNOWN');
   headers.delete('x-ssh-config'); // 防御：禁止匿名连接通过 HTTP 头注入配置
+  headers.delete('x-authenticated-user-id');
+  headers.delete('x-authenticated-instance-id');
+  headers.delete('x-authenticated-account-id');
+  headers.delete('x-authenticated-github-id');
+
+  if (authenticatedUser) {
+    headers.set('x-authenticated-user-id', String(authenticatedUser.id));
+    if (authenticatedUser.account_id) {
+      headers.set('x-authenticated-account-id', authenticatedUser.account_id);
+      headers.set('x-authenticated-instance-id', authenticatedUser.account_id);
+    }
+    if (authenticatedUser.github_id) {
+      headers.set('x-authenticated-github-id', String(authenticatedUser.github_id));
+      if (!authenticatedUser.account_id) {
+        headers.set('x-authenticated-instance-id', String(authenticatedUser.github_id));
+      }
+    }
+  }
 
   return stub.fetch(new Request(doUrl.toString(), { headers }));
 }
@@ -1188,6 +1207,10 @@ async function handleResumeSSHConnection(
   const headers = new Headers(request.headers);
   headers.set('x-cloudflare-colo', (request as any).cf?.colo || 'UNKNOWN');
   headers.delete('x-ssh-config');
+  headers.delete('x-authenticated-user-id');
+  headers.delete('x-authenticated-instance-id');
+  headers.delete('x-authenticated-account-id');
+  headers.delete('x-authenticated-github-id');
 
   return stub.fetch(new Request(doUrl.toString(), { headers }));
 }
@@ -1395,14 +1418,32 @@ async function handleTokenSSHConnection(
   }
 
   const config = await tokenRes.json<SSHConnectionConfig>();
-  if (!isGitHubUserAllowed(env, config.githubId ?? '')) {
-    return Response.json({ error: 'GitHub account is not allowed' }, { status: 403 });
+  config.instanceId = config.instanceId || instanceId;
+  if (instanceId.startsWith('acc_')) {
+    config.accountId = config.accountId || instanceId;
   }
-  if (authenticatedUser && String(authenticatedUser.github_id) !== String(config.githubId)) {
-    return Response.json(
-      { error: 'Connection token does not belong to this GitHub account' },
-      { status: 403 }
-    );
+
+  if (config.githubId && config.githubId !== '0' && !config.accountId) {
+    if (!isGitHubUserAllowed(env, config.githubId)) {
+      return Response.json({ error: 'GitHub account is not allowed' }, { status: 403 });
+    }
+  }
+
+  if (authenticatedUser) {
+    if (authenticatedUser.account_id) {
+      const tokenAccountId = config.accountId || instanceId;
+      if (tokenAccountId !== authenticatedUser.account_id) {
+        return Response.json(
+          { error: 'Connection token does not belong to this account' },
+          { status: 403 }
+        );
+      }
+    } else if (String(authenticatedUser.github_id) !== String(config.githubId)) {
+      return Response.json(
+        { error: 'Connection token does not belong to this GitHub account' },
+        { status: 403 }
+      );
+    }
   }
 
   const sessionName = `session:${Date.now()}:${crypto.randomUUID()}`;
@@ -1422,6 +1463,10 @@ async function handleTokenSSHConnection(
 
   const headers = new Headers(request.headers);
   headers.set('x-cloudflare-colo', (request as any).cf?.colo || 'UNKNOWN');
+  headers.delete('x-authenticated-user-id');
+  headers.delete('x-authenticated-instance-id');
+  headers.delete('x-authenticated-account-id');
+  headers.delete('x-authenticated-github-id');
   headers.set('x-ssh-config', encodeURIComponent(JSON.stringify(config)));
 
   const doRequest = new Request(doUrl.toString(), {

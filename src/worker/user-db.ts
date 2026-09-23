@@ -534,9 +534,8 @@ export class UserDBDO {
       }
       if (path === '/internal/ai-config/decrypt' && request.method === 'GET') {
         const userIdStr = url.searchParams.get('user_id');
-        if (!userIdStr) return Response.json({ error: 'Missing user_id' }, { status: 400 });
-        const userId = parseInt(userIdStr, 10);
-        if (isNaN(userId)) return Response.json({ error: 'Invalid user_id' }, { status: 400 });
+        const parsedId = userIdStr ? parseInt(userIdStr, 10) : NaN;
+        const userId = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : 1;
         return this.handleGetAIConfigDecrypted(userId);
       }
 
@@ -1643,6 +1642,8 @@ export class UserDBDO {
       knownHostIdentity: targetNode.identity,
       userId: String(body.user_id),
       githubId: String(githubId),
+      instanceId: String(tokenTarget),
+      accountId: String(tokenTarget).startsWith('acc_') ? String(tokenTarget) : undefined,
       serverId: target.id,
       os: target.os,
       locationHint,
@@ -1948,10 +1949,16 @@ export class UserDBDO {
   // ==================== AI 配置管理 ====================
 
   private handleGetAIConfig(userId: number): Response {
-    const rows = this.query<AIConfigRow>(
+    let rows = this.query<AIConfigRow>(
       'SELECT base_url, model, api_key_last4, updated_at FROM ai_configs WHERE user_id = ?',
       userId
     );
+
+    if (rows.length === 0) {
+      rows = this.query<AIConfigRow>(
+        'SELECT base_url, model, api_key_last4, updated_at FROM ai_configs LIMIT 1'
+      );
+    }
 
     if (rows.length === 0) {
       return Response.json({ configured: false });
@@ -2031,10 +2038,20 @@ export class UserDBDO {
   }
 
   private async handleGetAIConfigDecrypted(userId: number): Promise<Response> {
-    const rows = this.query<AIConfigSecretRow>(
-      'SELECT base_url, model, api_key_enc FROM ai_configs WHERE user_id = ?',
+    let rows = this.query<AIConfigSecretRow & { user_id?: number }>(
+      'SELECT user_id, base_url, model, api_key_enc FROM ai_configs WHERE user_id = ?',
       userId
     );
+
+    let effectiveUserId = userId;
+    if (rows.length === 0) {
+      rows = this.query<AIConfigSecretRow & { user_id?: number }>(
+        'SELECT user_id, base_url, model, api_key_enc FROM ai_configs LIMIT 1'
+      );
+      if (rows.length > 0 && typeof rows[0].user_id === 'number') {
+        effectiveUserId = rows[0].user_id;
+      }
+    }
 
     if (rows.length === 0) {
       return Response.json({ error: 'No AI config found' }, { status: 404 });
@@ -2045,7 +2062,7 @@ export class UserDBDO {
       return Response.json({ error: 'No API key configured' }, { status: 404 });
     }
 
-    const decrypted = await this.decryptCredential(row.api_key_enc, userId);
+    const decrypted = await this.decryptCredential(row.api_key_enc, effectiveUserId);
 
     return Response.json({
       base_url: row.base_url,

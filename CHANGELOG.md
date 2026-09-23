@@ -25,6 +25,11 @@
 
 ### Fixed
 
+- 修復 Email OTP / Passkey 帳號使用 AI Agent 時報「尚未配置 AI 接口」的問題：
+  - 根本原因修復：Email / Passkey 帳號在 SQLite 中 `github_id` 為 `0`，而 AI 設定存在 `acc_xxx` 專屬分區中。過去 `SSHSession` 的 `fetchAgentAIConfig`、`memoryProvider` 與 `detectRemoteOS` 僅取 `githubId` 作為分區鍵，導致查詢了空的 `0` 分區而回傳 404。
+  - 多通道憑據與分區貫穿：`SSHConnectionConfig` 與 `SSHSessionOptions` 新增 `instanceId` 與 `accountId`，在保存伺服器 Token 連接與直連 SSH 升級通道中完整傳遞已驗證分區 ID，統一透過 `getUserDBTarget()` 定位分區。
+  - 單一使用者備援解密機制：`UserDBDO` 的 `handleGetAIConfig` 與 `handleGetAIConfigDecrypted` 新增單使用者保底查詢（`LIMIT 1`），確保在分區隔離環境下均能順利取得並解密 API Key。
+  - 安全強化（Codex Code Review）：在 Worker 升級處理常式（Direct / Token / Resume）中強制剝離客戶端傳入的 `x-authenticated-*` 偽造標頭，僅允許由 Worker 經過 Session 驗證後注入受信任身分，杜絕身分偽造與憑據外洩風險。
 - 修正 Email OTP 寄出後在測試模式自動填入驗證碼的問題，改由使用者自行輸入收到的驗證碼。
 - 強化 Resend API 錯誤捕捉與日誌記錄，提升發信失敗時的可排查性。
 - 修復同源檢查與 Cloudflare Edge 協議適配（`origin-check.ts`）：

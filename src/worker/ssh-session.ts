@@ -103,6 +103,8 @@ export interface SSHSessionOptions {
    * 未传入时从 env.IDLE_TIMEOUT 解析，默认 30 分钟；0 表示禁用。
    */
   idleTimeoutMs?: number;
+  /** 关联的 UserDB 实例标识（acc_xxx 或 github_id） */
+  instanceId?: string;
 }
 
 export class SSHSession {
@@ -221,6 +223,7 @@ export class SSHSession {
   private env: Env | null = null;
   private userId: string | null = null;
   private githubId: string | null = null;
+  private instanceId: string | null = null;
   private osDetectInProgress: boolean = false;
   private readonly shareAuditor: ShareAuditWriter;
   private get shareAuditStarted(): boolean {
@@ -283,6 +286,7 @@ export class SSHSession {
     this.env = env || null;
     this.userId = userId || null;
     this.githubId = githubId || null;
+    this.instanceId = options.instanceId || config.instanceId || config.accountId || null;
     this.openShellOnAuth = options.openShellOnAuth !== false;
     this.ownsWebSocket = options.ownsWebSocket !== false;
     this.allowKeyboardInteractive = options.allowKeyboardInteractive !== false;
@@ -2764,15 +2768,28 @@ export class SSHSession {
   }
 
   /**
+   * 解析当前会话关联的 UserDBDO 实例分区标识。
+   * 优先使用显式 instanceId 或 Email 账户的 accountId，其次为非零 githubId。
+   */
+  private getUserDBTarget(): string | null {
+    if (this.instanceId) return this.instanceId;
+    if (this.config.instanceId) return this.config.instanceId;
+    if (this.config.accountId) return this.config.accountId;
+    if (this.githubId && this.githubId !== '0') return this.githubId;
+    return null;
+  }
+
+  /**
    * 通过独立 exec channel 检测远端操作系统并持久化到 UserDBDO。
    * 仅对已登录用户的已保存服务器执行；解析/持久化失败都不影响 SSH 会话。
    */
   private async detectRemoteOS(): Promise<void> {
     if (this.config.sessionPolicy?.source === 'share') return;
+    const userDbTarget = this.getUserDBTarget();
     if (
       !this.config.serverId ||
       !this.userId ||
-      !this.githubId ||
+      !userDbTarget ||
       this.config.os ||
       this.osDetectInProgress
     ) {
@@ -2783,7 +2800,8 @@ export class SSHSession {
       const os = await detectAndPersistRemoteOS({
         serverId: this.config.serverId,
         userId: this.userId,
-        githubId: this.githubId,
+        githubId: this.githubId || '0',
+        instanceId: userDbTarget,
         env: this.env,
         executeCommand: (cmd, timeout) => this.executeAgentCommand(cmd, timeout),
         onOSDetected: (detected) => {
@@ -2877,13 +2895,13 @@ export class SSHSession {
       let memoryProvider: AgentMemoryProvider | undefined;
       const serverId = this.config.serverId;
       const uid = this.userId;
-      const gid = this.githubId;
+      const userDbTarget = this.getUserDBTarget();
       const env = this.env;
-      if (serverId && uid && gid && env) {
+      if (serverId && uid && userDbTarget && env) {
         memoryProvider = {
           fetchUnifiedMemory: async () => {
             try {
-              const stub = env.USER_DB.get(env.USER_DB.idFromName(gid));
+              const stub = env.USER_DB.get(env.USER_DB.idFromName(userDbTarget));
               const res = await stub.fetch(
                 new Request(`http://internal/internal/servers/${serverId}/memory?user_id=${uid}`)
               );
@@ -2895,7 +2913,7 @@ export class SSHSession {
           },
           saveBatchMemory: async (batch) => {
             try {
-              const stub = env.USER_DB.get(env.USER_DB.idFromName(gid));
+              const stub = env.USER_DB.get(env.USER_DB.idFromName(userDbTarget));
               await stub.fetch(
                 new Request(`http://internal/internal/servers/${serverId}/memory/batch`, {
                   method: 'POST',
@@ -2913,7 +2931,7 @@ export class SSHSession {
       this.agentCore = new AgentCore(
         this.terminalContext,
         (msg: any) => this.sendAgentFrame(msg),
-        async (uId: string) => this.fetchAgentAIConfig(uId, this.githubId!),
+        async (uId: string) => this.fetchAgentAIConfig(uId, this.getUserDBTarget()),
         async (command: string, timeout: number, signal?: AbortSignal) =>
           this.executeAgentCommand(command, timeout, signal),
         async (command: string, reason: string) => this.askAgentConfirmation(command, reason),
@@ -2971,13 +2989,14 @@ export class SSHSession {
 
   private async fetchAgentAIConfig(
     userId: string,
-    githubId: string
+    userDbTarget: string | null
   ): Promise<{ base_url: string; model: string; api_key: string } | null> {
-    if (!this.env) return null;
+    if (!this.env || !userDbTarget) return null;
     try {
-      const stub = this.env.USER_DB.get(this.env.USER_DB.idFromName(githubId));
+      const targetUserId = userId && userId !== 'anonymous' ? userId : this.userId || '1';
+      const stub = this.env.USER_DB.get(this.env.USER_DB.idFromName(userDbTarget));
       const res = await stub.fetch(
-        new Request(`http://internal/internal/ai-config/decrypt?user_id=${userId}`)
+        new Request(`http://internal/internal/ai-config/decrypt?user_id=${targetUserId}`)
       );
       if (!res.ok) return null;
       return (await res.json()) as { base_url: string; model: string; api_key: string };
