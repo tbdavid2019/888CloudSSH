@@ -299,7 +299,6 @@ export class EmailLoginForm {
       const otpInput = document.getElementById('otp-input') as HTMLInputElement | null;
       if (data.debug_code) {
         notify(t('auth.testOtpNotice', { code: data.debug_code }), { variant: 'info' });
-        if (otpInput) otpInput.value = data.debug_code;
       }
       otpInput?.focus();
 
