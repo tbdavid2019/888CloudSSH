@@ -4,9 +4,14 @@
 
 ## 2026-09-23
 
+### Added
+
+- 設定 Resend API 密鑰與寄件網域 `no-reply@vip.david888.com`，全面啟用真實 Email OTP 發信。
+
 ### Fixed
 
 - 修正 Email OTP 寄出後在測試模式自動填入驗證碼的問題，改由使用者自行輸入收到的驗證碼。
+- 強化 Resend API 錯誤捕捉與日誌記錄，提升發信失敗時的可排查性。
 
 ## 2026-09-22
 

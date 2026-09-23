@@ -8,7 +8,7 @@ DEBUG_MODE = "false"
 BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
 ALLOWED_EMAILS = "oobwei@gmail.com,ooboob@gmail.com"
 REQUIRE_AUTH = "true"
-RESEND_FROM_EMAIL = "security@david888.com"
+RESEND_FROM_EMAIL = "no-reply@vip.david888.com"
 
 # 构建监视路径：仅源代码变动时触发重新构建
 [build]
@@ -72,7 +72,7 @@ DEBUG_MODE = "true"
 BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
 ALLOWED_EMAILS = "oobwei@gmail.com,ooboob@gmail.com"
 REQUIRE_AUTH = "true"
-RESEND_FROM_EMAIL = "security@david888.com"
+RESEND_FROM_EMAIL = "no-reply@vip.david888.com"
 
 [[env.test.durable_objects.bindings]]
 name = "SSH_SESSION"

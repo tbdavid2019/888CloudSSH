@@ -35,7 +35,8 @@ export function createResendEmailSender(env: Env): EmailSender {
     });
 
     if (!response.ok) {
-      throw new Error(`Resend email request failed (${response.status})`);
+      const errorText = await response.text();
+      throw new Error(`Resend email request failed (${response.status}): ${errorText}`);
     }
   };
 }

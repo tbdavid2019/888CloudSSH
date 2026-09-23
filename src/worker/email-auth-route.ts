@@ -130,8 +130,12 @@ export async function handleEmailOtpRequest(request: Request, env: Env): Promise
   if (env.RESEND_API_KEY && env.RESEND_FROM_EMAIL) {
     try {
       await createResendEmailSender(env)(buildEmailOtpMessage(email, code));
-    } catch {
-      return Response.json({ error: 'Unable to send OTP' }, { status: 503 });
+    } catch (e) {
+      console.error('Failed to send OTP via Resend:', e);
+      return Response.json(
+        { error: e instanceof Error ? e.message : 'Unable to send OTP' },
+        { status: 503 }
+      );
     }
     return Response.json({ success: true, challenge_id: challengeId });
   }
