@@ -25,6 +25,7 @@
 
 ### Fixed
 
+- 修復 Gemini OpenAI 相容 API 的多輪工具呼叫失敗：保留串流回應中的 `extra_content.google.thought_signature`，並隨後續對話原樣傳回；Agent 的 LLM 錯誤前綴也會依繁體中文、簡體中文或英文介面語系顯示。
 - 修復 Email OTP / Passkey 帳號使用 AI Agent 時報「尚未配置 AI 接口」的問題：
   - 根本原因修復：Email / Passkey 帳號在 SQLite 中 `github_id` 為 `0`，而 AI 設定存在 `acc_xxx` 專屬分區中。過去 `SSHSession` 的 `fetchAgentAIConfig`、`memoryProvider` 與 `detectRemoteOS` 僅取 `githubId` 作為分區鍵，導致查詢了空的 `0` 分區而回傳 404。
   - 多通道憑據與分區貫穿：`SSHConnectionConfig` 與 `SSHSessionOptions` 新增 `instanceId` 與 `accountId`，在保存伺服器 Token 連接與直連 SSH 升級通道中完整傳遞已驗證分區 ID，統一透過 `getUserDBTarget()` 定位分區。

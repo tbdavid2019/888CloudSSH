@@ -381,10 +381,16 @@ export class AgentCore {
         } catch (e) {
           if (signal.aborted) break;
           const errMsg = e instanceof Error ? e.message : String(e);
+          const errorPrefix =
+            this.preferredLocale === 'en-US'
+              ? 'LLM call failed: '
+              : this.preferredLocale === 'zh-TW'
+                ? 'LLM 呼叫失敗：'
+                : 'LLM 调用失败：';
           this.sendToFrontend({
             type: 'agent_frame',
             subType: 'error',
-            message: `LLM 调用失败: ${errMsg}`,
+            message: `${errorPrefix}${errMsg}`,
           });
           break;
         }
@@ -688,7 +694,10 @@ export class AgentCore {
     let buffer = '';
     let contentText = '';
     let reasoningText = '';
-    const toolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
+    const toolCalls: Map<
+      number,
+      { id: string; name: string; arguments: string; extra_content?: Record<string, unknown> }
+    > = new Map();
     let hasToolCalls = false;
     let upstreamFinishReason: string | null = null;
 
@@ -745,6 +754,9 @@ export class AgentCore {
                 if (tc.id) existing.id = tc.id;
                 if (tc.function?.name) existing.name = tc.function.name;
                 if (tc.function?.arguments) existing.arguments += tc.function.arguments;
+                if (tc.extra_content && typeof tc.extra_content === 'object') {
+                  existing.extra_content = tc.extra_content;
+                }
                 if (tc.function?.name || tc.id) {
                   hasToolCalls = true;
                 }
@@ -766,6 +778,7 @@ export class AgentCore {
         id: tc.id,
         type: 'function' as const,
         function: { name: tc.name, arguments: tc.arguments },
+        ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
       }));
 
     const actualHasToolCalls = assembledToolCalls.length > 0;
