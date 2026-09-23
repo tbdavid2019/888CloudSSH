@@ -18,6 +18,15 @@ import {
   handleRecoveryRegenerate,
   handleRecoveryStatus,
 } from './email-auth-route';
+import {
+  handlePasskeyRegisterChallenge,
+  handlePasskeyRegister,
+  handlePasskeyLoginChallenge,
+  handlePasskeyLogin,
+  handlePasskeysList,
+  handlePasskeyDelete,
+} from './passkey-route';
+import { handleStaticAsset } from './static-assets';
 
 export { SSHSessionDO } from './durable-object';
 export { SSHShareDO } from './share-do';
@@ -190,6 +199,10 @@ export default {
     try {
       const url = new URL(request.url);
 
+      // ==================== Static Assets (Favicon, OG, Manifest) ====================
+      const staticAsset = handleStaticAsset(url);
+      if (staticAsset) return staticAsset;
+
       // ==================== Auth Routes ====================
 
       if (url.pathname === '/api/auth/github') {
@@ -206,6 +219,23 @@ export default {
 
       if (url.pathname === '/api/auth/recovery' && request.method === 'POST') {
         return handleRecoveryLogin(request, env);
+      }
+
+      // ==================== Passkey / Touch ID 認證路由 ====================
+      if (url.pathname === '/api/auth/passkey/register-challenge' && request.method === 'POST') {
+        return handlePasskeyRegisterChallenge(request, env);
+      }
+
+      if (url.pathname === '/api/auth/passkey/register' && request.method === 'POST') {
+        return handlePasskeyRegister(request, env);
+      }
+
+      if (url.pathname === '/api/auth/passkey/login-challenge' && request.method === 'POST') {
+        return handlePasskeyLoginChallenge(request, env);
+      }
+
+      if (url.pathname === '/api/auth/passkey/login' && request.method === 'POST') {
+        return handlePasskeyLogin(request, env);
       }
 
       if (url.pathname === '/api/auth/callback') {
@@ -252,6 +282,17 @@ export default {
 
       if (url.pathname === '/api/user/recovery-codes/regenerate' && request.method === 'POST') {
         return handleRecoveryRegenerate(request, env);
+      }
+
+      // ==================== Passkey Management Routes (需认证) ====================
+
+      if (url.pathname === '/api/user/passkeys' && request.method === 'GET') {
+        return handlePasskeysList(request, env);
+      }
+
+      if (url.pathname.startsWith('/api/user/passkeys/') && request.method === 'DELETE') {
+        const credentialId = decodeURIComponent(url.pathname.slice('/api/user/passkeys/'.length));
+        return handlePasskeyDelete(request, env, credentialId);
       }
 
       // ==================== known_hosts Routes (需认证) ====================

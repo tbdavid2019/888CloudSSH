@@ -64,13 +64,22 @@ export class AccountDO {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS passkeys (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        public_key TEXT NOT NULL,
+        counter INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER
+      );
     `);
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/internal/account/profile' && request.method === 'POST') {
-      return this.handleProfileInit(request);
+    if (url.pathname === '/internal/account/profile') {
+      if (request.method === 'POST') return this.handleProfileInit(request);
+      if (request.method === 'GET') return this.handleProfileGet();
     }
     if (url.pathname === '/internal/account/session/create' && request.method === 'POST') {
       return this.handleSessionCreate(request);
@@ -95,6 +104,23 @@ export class AccountDO {
     }
     if (url.pathname === '/internal/account/recovery/regenerate' && request.method === 'POST') {
       return this.handleRecoveryRegenerate(request);
+    }
+    if (url.pathname === '/internal/account/passkeys' && request.method === 'GET') {
+      return this.handlePasskeysList();
+    }
+    if (url.pathname === '/internal/account/passkeys/add' && request.method === 'POST') {
+      return this.handlePasskeyAdd(request);
+    }
+    if (url.pathname.startsWith('/internal/account/passkeys/') && request.method === 'GET') {
+      const id = decodeURIComponent(url.pathname.slice('/internal/account/passkeys/'.length));
+      return this.handlePasskeyGet(id);
+    }
+    if (url.pathname.startsWith('/internal/account/passkeys/') && request.method === 'DELETE') {
+      const id = decodeURIComponent(url.pathname.slice('/internal/account/passkeys/'.length));
+      return this.handlePasskeyDelete(id);
+    }
+    if (url.pathname === '/internal/account/passkeys/update-usage' && request.method === 'POST') {
+      return this.handlePasskeyUpdateUsage(request);
     }
     if (url.pathname === '/internal/account/workspaces' && request.method === 'GET') {
       return Response.json({ workspaces: this.listWorkspaces() });
@@ -121,6 +147,16 @@ export class AccountDO {
       body.email
     );
     return Response.json({ id: body.account_id, account_id: body.account_id, email: body.email });
+  }
+
+  private handleProfileGet(): Response {
+    const rows = this.db
+      .exec('SELECT account_id, email FROM account_profile LIMIT 1')
+      .toArray() as Array<{ account_id: string; email: string }>;
+    if (rows.length === 0) {
+      return Response.json({ error: 'Profile not found' }, { status: 404 });
+    }
+    return Response.json({ account_id: rows[0].account_id, email: rows[0].email });
   }
 
   private async handleSessionCreate(request: Request): Promise<Response> {
@@ -303,5 +339,61 @@ export class AccountDO {
       now
     );
     return Response.json({ workspace_id: body.workspace_id, role: body.role });
+  }
+
+  private handlePasskeysList(): Response {
+    const rows = this.db
+      .exec('SELECT id, name, created_at, last_used_at FROM passkeys ORDER BY created_at DESC')
+      .toArray() as Array<{ id: string; name: string; created_at: number; last_used_at: number | null }>;
+    return Response.json({ passkeys: rows });
+  }
+
+  private async handlePasskeyAdd(request: Request): Promise<Response> {
+    const body = await request.json<{ id?: unknown; name?: unknown; public_key?: unknown }>();
+    if (
+      typeof body.id !== 'string' ||
+      typeof body.name !== 'string' ||
+      typeof body.public_key !== 'string'
+    ) {
+      return Response.json({ error: 'Invalid passkey payload' }, { status: 400 });
+    }
+    const now = Date.now();
+    this.db.exec(
+      'INSERT INTO passkeys (id, name, public_key, counter, created_at, last_used_at) VALUES (?, ?, ?, 0, ?, NULL)',
+      body.id,
+      body.name,
+      body.public_key,
+      now
+    );
+    return Response.json({ success: true, id: body.id });
+  }
+
+  private handlePasskeyGet(id: string): Response {
+    const rows = this.db
+      .exec('SELECT id, name, public_key, counter, created_at, last_used_at FROM passkeys WHERE id = ?', id)
+      .toArray() as Array<{ id: string; name: string; public_key: string; counter: number; created_at: number; last_used_at: number | null }>;
+    if (rows.length === 0) {
+      return Response.json({ error: 'Passkey not found' }, { status: 404 });
+    }
+    return Response.json({ passkey: rows[0] });
+  }
+
+  private handlePasskeyDelete(id: string): Response {
+    this.db.exec('DELETE FROM passkeys WHERE id = ?', id);
+    return Response.json({ success: true });
+  }
+
+  private async handlePasskeyUpdateUsage(request: Request): Promise<Response> {
+    const body = await request.json<{ id?: unknown; counter?: unknown }>();
+    if (typeof body.id !== 'string' || typeof body.counter !== 'number') {
+      return Response.json({ error: 'Invalid update payload' }, { status: 400 });
+    }
+    this.db.exec(
+      'UPDATE passkeys SET counter = ?, last_used_at = ? WHERE id = ?',
+      body.counter,
+      Date.now(),
+      body.id
+    );
+    return Response.json({ success: true });
   }
 }

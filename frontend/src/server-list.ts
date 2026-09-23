@@ -1,5 +1,6 @@
 import { copyTextToClipboard } from './clipboard';
 import { showRecoveryCodesModal } from './email-login';
+import { showPasskeyManagerModal } from './passkey';
 import { isValidTunnelHostname, maskIPAddress } from './host-display';
 import { onLocaleChange, t, translateDocument } from './i18n';
 import { osDisplayName, osIconSvg } from './os-icons';
@@ -212,7 +213,18 @@ export class ServerList {
     container.appendChild(span);
   }
 
-  // ==================== 救援码管理 ====================
+  // ==================== Passkey / 救援码管理 ====================
+
+  private bindPasskeyButton(): void {
+    const passkeyBtn = document.getElementById('passkey-btn');
+    if (!passkeyBtn) return;
+    if (this.user.account_id) {
+      passkeyBtn.classList.remove('hidden');
+      passkeyBtn.onclick = () => void showPasskeyManagerModal();
+    } else {
+      passkeyBtn.classList.add('hidden');
+    }
+  }
 
   private bindRecoveryCodesButton(): void {
     const recoveryBtn = document.getElementById('recovery-codes-btn');
@@ -361,6 +373,9 @@ export class ServerList {
   private bindEvents(): void {
     // 退出登录
     document.getElementById('logout-btn')?.addEventListener('click', () => this.logout());
+
+    // Touch ID / Passkey 管理
+    this.bindPasskeyButton();
 
     // 紧急救援码管理
     this.bindRecoveryCodesButton();

@@ -6,9 +6,21 @@
 
 ### Added
 
+- 新增 Touch ID / Passkey (FIDO2 / WebAuthn) 硬體無密碼身分驗證支援：
+  - 核心加密層：零外部依賴、純 Web Crypto 原生 ECDSA P-256 (ES256) 驗證、DER 轉 IEEE P1363 簽名標準轉換、CBOR/COSE 公鑰解析、RP ID 雜湊校驗、使用者在場 (UP) 驗證與防重放挑戰機制。
+  - Durable Objects 持久化：`AccountDO` 新增 `passkeys` SQLite 表與管理路由；`AccountDirectoryDO` 新增全域 `credential_id` 映射索引與 120 秒挑戰碼快顯。
+  - Worker API 路由：提供 `/api/auth/passkey/register-challenge`、`/api/auth/passkey/register`、`/api/auth/passkey/login-challenge`、`/api/auth/passkey/login`、`/api/user/passkeys`。
+  - 前端使用者介面：登入頁新增「Touch ID / Passkey 快速登入」一鍵驗證；使用者空間頂部導覽列新增「Touch ID」指紋按鈕，提供管理彈窗（裝置命名、註冊、列表與刪除，全流程採用無障礙非同步彈窗）。
+- 修復 `https://ssh.david888.com` 的 Open Graph、Twitter Card、SEO 與靜態資源問題：
+  - 後端靜態資源服務器：支援 `/favicon.svg`、`/apple-touch-icon.png`、`/og-image.png`（1200x630 專屬社群分享卡）、`/site.webmanifest`（PWA 規範）、`/robots.txt`。
+  - 補齊完整 `<head>` 標籤：`og:title`、`og:description`、`og:image`、`og:url`、`og:site_name`、`og:locale`、`twitter:card`、`canonical`、`theme-color`、以及 Schema.org JSON-LD 結構化資料。
+  - 將登入區塊品牌標題改為語意化 `<h1>` 標籤，解決缺少主標題警告。
 - 新增使用者自主緊急救援碼管理功能：
   - 後端提供 `GET /api/user/recovery-codes/status`（查詢剩餘有效組數）與 `POST /api/user/recovery-codes/regenerate`（作廢舊碼並重新生成 10 組全新救援碼）。
   - 前端使用者空間頂部導覽列新增「緊急救援碼」按鈕（盾牌圖示），登入使用者可隨時查看有效救援碼剩餘數量，並支援一鍵重新生成、複製全部與下載 `.txt` 備份檔。
+- 更新 `README.md`：
+  - 繪製完整的多層身分驗證架構圖（Mermaid 視覺化繪製瀏覽器、Cloudflare Workers、Durable Objects 與外部服務互動）。
+  - 更新 Touch ID / Passkey 與 Resend 發信等最新功能介紹與環境變數說明。
 - 設定 Resend API 密鑰與寄件網域 `no-reply@vip.david888.com`，全面啟用真實 Email OTP 發信。
 
 ### Fixed

@@ -40,6 +40,18 @@ export class AccountDirectoryDO {
       );
       CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email
         ON workspace_invitations(email_hash, created_at DESC);
+      CREATE TABLE IF NOT EXISTS passkey_challenges (
+        challenge TEXT PRIMARY KEY,
+        action TEXT NOT NULL,
+        user_id TEXT,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS passkey_index (
+        credential_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
     `);
   }
 
@@ -53,6 +65,21 @@ export class AccountDirectoryDO {
     }
     if (url.pathname === '/internal/account/lookup' && request.method === 'POST') {
       return this.handleAccountLookup(request);
+    }
+    if (url.pathname === '/internal/passkey-challenge/create' && request.method === 'POST') {
+      return this.handlePasskeyChallengeCreate(request);
+    }
+    if (url.pathname === '/internal/passkey-challenge/consume' && request.method === 'POST') {
+      return this.handlePasskeyChallengeConsume(request);
+    }
+    if (url.pathname === '/internal/passkey-index/register' && request.method === 'POST') {
+      return this.handlePasskeyIndexRegister(request);
+    }
+    if (url.pathname === '/internal/passkey-index/delete' && request.method === 'POST') {
+      return this.handlePasskeyIndexDelete(request);
+    }
+    if (url.pathname === '/internal/passkey-index/lookup' && request.method === 'POST') {
+      return this.handlePasskeyIndexLookup(request);
     }
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
@@ -220,6 +247,92 @@ export class AccountDirectoryDO {
     const rows = this.db
       .exec('SELECT account_id FROM account_directory WHERE email_hash = ?', emailHash)
       .toArray() as Array<{ account_id: AccountId }>;
+    return Response.json({ account_id: rows[0]?.account_id || null });
+  }
+
+  private async handlePasskeyChallengeCreate(request: Request): Promise<Response> {
+    const body = await request.json<{
+      challenge?: unknown;
+      action?: unknown;
+      user_id?: unknown;
+      expires_at?: unknown;
+    }>();
+    if (
+      typeof body.challenge !== 'string' ||
+      typeof body.action !== 'string' ||
+      typeof body.expires_at !== 'number'
+    ) {
+      return Response.json({ error: 'Invalid challenge request' }, { status: 400 });
+    }
+    const now = Date.now();
+    this.db.exec('DELETE FROM passkey_challenges WHERE expires_at <= ?', now);
+    this.db.exec(
+      'INSERT INTO passkey_challenges (challenge, action, user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)',
+      body.challenge,
+      body.action,
+      typeof body.user_id === 'string' ? body.user_id : null,
+      body.expires_at,
+      now
+    );
+    return Response.json({ success: true });
+  }
+
+  private async handlePasskeyChallengeConsume(request: Request): Promise<Response> {
+    const body = await request.json<{ challenge?: unknown; action?: unknown }>();
+    if (typeof body.challenge !== 'string' || typeof body.action !== 'string') {
+      return Response.json({ valid: false }, { status: 400 });
+    }
+    const now = Date.now();
+    const rows = this.db
+      .exec(
+        'SELECT challenge, action, user_id, expires_at FROM passkey_challenges WHERE challenge = ? AND action = ?',
+        body.challenge,
+        body.action
+      )
+      .toArray() as Array<{ challenge: string; action: string; user_id: string | null; expires_at: number }>;
+    if (rows.length === 0) {
+      return Response.json({ valid: false });
+    }
+    const row = rows[0];
+    this.db.exec('DELETE FROM passkey_challenges WHERE challenge = ?', body.challenge);
+    if (row.expires_at <= now) {
+      return Response.json({ valid: false, expired: true });
+    }
+    return Response.json({ valid: true, user_id: row.user_id });
+  }
+
+  private async handlePasskeyIndexRegister(request: Request): Promise<Response> {
+    const body = await request.json<{ credential_id?: unknown; account_id?: unknown }>();
+    if (typeof body.credential_id !== 'string' || typeof body.account_id !== 'string') {
+      return Response.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+    this.db.exec(
+      `INSERT INTO passkey_index (credential_id, account_id, created_at) VALUES (?, ?, ?)
+       ON CONFLICT(credential_id) DO UPDATE SET account_id = excluded.account_id`,
+      body.credential_id,
+      body.account_id,
+      Date.now()
+    );
+    return Response.json({ success: true });
+  }
+
+  private async handlePasskeyIndexDelete(request: Request): Promise<Response> {
+    const body = await request.json<{ credential_id?: unknown }>();
+    if (typeof body.credential_id !== 'string') {
+      return Response.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+    this.db.exec('DELETE FROM passkey_index WHERE credential_id = ?', body.credential_id);
+    return Response.json({ success: true });
+  }
+
+  private async handlePasskeyIndexLookup(request: Request): Promise<Response> {
+    const body = await request.json<{ credential_id?: unknown }>();
+    if (typeof body.credential_id !== 'string') {
+      return Response.json({ account_id: null });
+    }
+    const rows = this.db
+      .exec('SELECT account_id FROM passkey_index WHERE credential_id = ?', body.credential_id)
+      .toArray() as Array<{ account_id: string }>;
     return Response.json({ account_id: rows[0]?.account_id || null });
   }
 }

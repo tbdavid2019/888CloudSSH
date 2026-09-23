@@ -3,6 +3,7 @@
 
 import { t, translateDocument, type TranslationKey } from './i18n';
 import { notify } from './ui-feedback';
+import { isPasskeySupported, loginWithPasskey } from './passkey';
 
 export interface EmailLoginFormOptions {
   container: HTMLElement;
@@ -27,9 +28,32 @@ export class EmailLoginForm {
   }
 
   public render(): void {
+    const showPasskey = isPasskeySupported();
     // pi-lens-ignore: no-inner-html
     this.options.container.innerHTML = `
       <div id="email-login-panel" class="space-y-5">
+        ${
+          showPasskey
+            ? `
+        <!-- Passkey 1-Click Login -->
+        <div id="passkey-login-container" class="space-y-3">
+          <button
+            id="passkey-login-btn"
+            type="button"
+            class="cyber-button w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 border border-[var(--accent)]/50 hover:border-[var(--accent)] text-[var(--accent)] bg-elevated hover:bg-surface transition-all shadow-sm"
+          >
+            <span class="material-symbols-outlined" style="font-size: 20px;">fingerprint</span>
+            <span data-i18n="auth.passkeyLoginAction">${t('auth.passkeyLoginAction')}</span>
+          </button>
+          <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-dim"></div>
+            <span class="flex-shrink mx-3 text-[11px] text-muted tracking-wider" data-i18n="auth.orEmailOtp">${t('auth.orEmailOtp')}</span>
+            <div class="flex-grow border-t border-dim"></div>
+          </div>
+        </div>
+        `
+            : ''
+        }
         <!-- OTP Login Mode -->
         <div id="email-otp-view" class="space-y-4">
           <div class="space-y-1.5">
@@ -210,6 +234,9 @@ export class EmailLoginForm {
     const otpInput = document.getElementById('otp-input') as HTMLInputElement | null;
     const emailInput = document.getElementById('email-input') as HTMLInputElement | null;
 
+    const passkeyBtn = document.getElementById('passkey-login-btn');
+    passkeyBtn?.addEventListener('click', () => void this.handlePasskeyLogin());
+
     sendBtn?.addEventListener('click', () => void this.handleSendOtp());
     resendBtn?.addEventListener('click', () => void this.handleSendOtp());
     verifyBtn?.addEventListener('click', () => void this.handleVerifyOtp());
@@ -248,6 +275,39 @@ export class EmailLoginForm {
         void this.handleVerifyOtp();
       }
     });
+  }
+
+  private async handlePasskeyLogin(): Promise<void> {
+    const passkeyBtn = document.getElementById('passkey-login-btn') as HTMLButtonElement | null;
+    if (passkeyBtn) {
+      passkeyBtn.disabled = true;
+      passkeyBtn.textContent = t('auth.verifying');
+    }
+
+    try {
+      await loginWithPasskey(this.turnstileToken || undefined);
+      notify(t('feedback.success'), { variant: 'info' });
+      try {
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const user = await meRes.json();
+          this.options.onLoginSuccess(user);
+          return;
+        }
+      } catch {
+        /* fallback reload */
+      }
+      window.location.reload();
+    } catch (e: any) {
+      notify(e.message || String(e), { variant: 'warning' });
+      if (passkeyBtn) {
+        passkeyBtn.disabled = false;
+        passkeyBtn.innerHTML = `
+          <span class="material-symbols-outlined" style="font-size: 20px;">fingerprint</span>
+          <span data-i18n="auth.passkeyLoginAction">${t('auth.passkeyLoginAction')}</span>
+        `;
+      }
+    }
   }
 
   private async handleSendOtp(): Promise<void> {
