@@ -110,7 +110,7 @@ export const zhTW = {
   'auth.neverUsed': '從未使用',
   'auth.createdAt': '新增時間：{time}',
   'auth.passkeyNotSupported': '此瀏覽器或裝置不支援 WebAuthn / Passkey',
-  'auth.passkeyCancelled': '已取消 Touch ID / Passkey 驗證',
+  'auth.passkeyCancelled': '已取消或此裝置尚未綁定 Passkey（請先以 Email 登入後於右上角綁定）',
   'auth.orEmailOtp': '或使用 Email 驗證碼',
   'auth.testOtpNotice': '測試提示：驗證碼為 {code}（因尚未設定 RESEND_API_KEY）',
   'auth.githubRequired': '此 CloudSSH 執行個體需要 GitHub 登入',

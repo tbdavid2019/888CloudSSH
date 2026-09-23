@@ -142,7 +142,8 @@ export const enUS: Record<keyof typeof zhCN, string> = {
   'auth.neverUsed': 'Never used',
   'auth.createdAt': 'Added: {time}',
   'auth.passkeyNotSupported': 'WebAuthn / Passkey is not supported on this browser or device',
-  'auth.passkeyCancelled': 'Touch ID / Passkey verification was cancelled',
+  'auth.passkeyCancelled':
+    'Cancelled or Passkey not registered on this device (please login via Email first)',
   'auth.orEmailOtp': 'Or sign in with Email OTP',
   'auth.testOtpNotice': 'Test mode: OTP code is {code} (RESEND_API_KEY not configured)',
   'auth.githubRequired': 'This CloudSSH instance requires GitHub sign-in',

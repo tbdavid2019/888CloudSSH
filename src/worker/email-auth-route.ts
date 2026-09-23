@@ -9,16 +9,7 @@ import {
 import { buildEmailOtpMessage, createResendEmailSender } from './resend';
 import { getAuthenticatedUser } from './auth';
 import type { AccountId, Env } from '../types';
-
-function hasSameOrigin(request: Request): boolean {
-  const origin = request.headers.get('Origin');
-  if (!origin) return false;
-  try {
-    return origin === new URL(request.url).origin;
-  } catch {
-    return false;
-  }
-}
+import { hasSameOrigin } from './origin-check';
 
 function getDirectoryStub(env: Env): DurableObjectStub {
   return env.ACCOUNT_DIRECTORY.getByName('global');

@@ -27,6 +27,7 @@ import {
   handlePasskeyDelete,
 } from './passkey-route';
 import { handleStaticAsset } from './static-assets';
+import { hasSameOrigin, hasSameWebSocketOrigin } from './origin-check';
 
 export { SSHSessionDO } from './durable-object';
 export { SSHShareDO } from './share-do';
@@ -939,8 +940,7 @@ async function handleAIRoute(request: Request, url: URL, env: Env): Promise<Resp
 
   // 同源安全校验（CSRF 防护）
   if (request.method === 'POST' || request.method === 'PUT') {
-    const origin = request.headers.get('Origin');
-    if (origin && origin !== url.origin) {
+    if (!hasSameOrigin(request)) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
@@ -1114,10 +1114,6 @@ function parseRequestUrl(input: string): URL | null {
   } catch {
     return null;
   }
-}
-
-function hasSameWebSocketOrigin(request: Request, url: URL): boolean {
-  return request.headers.get('Origin') === url.origin;
 }
 
 async function handleSSHConnection(request: Request, env: Env): Promise<Response> {

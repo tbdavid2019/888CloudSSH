@@ -27,6 +27,10 @@
 
 - 修正 Email OTP 寄出後在測試模式自動填入驗證碼的問題，改由使用者自行輸入收到的驗證碼。
 - 強化 Resend API 錯誤捕捉與日誌記錄，提升發信失敗時的可排查性。
+- 修復同源檢查與 Cloudflare Edge 協議適配（`origin-check.ts`）：
+  - 支援現代瀏覽器 `Sec-Fetch-Site` 優先校驗（`same-origin` 與直接存取放行，嚴格阻擋 `cross-site`）。
+  - 適配 Cloudflare SSL 終止後的 `http` 內部協議與客戶端 `https` Origin 比較，避免因協議或端口格式差異誤報 HTTP 403 Forbidden。
+  - 優化 Passkey 登入取消或未註冊提示文案，引導使用者先以 Email 登入後再進行裝置綁定。
 
 ## 2026-09-22
 

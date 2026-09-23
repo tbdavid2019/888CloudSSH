@@ -107,7 +107,7 @@ export const zhCN = {
   'auth.neverUsed': '从未使用',
   'auth.createdAt': '新增时间：{time}',
   'auth.passkeyNotSupported': '此浏览器或设备不支持 WebAuthn / Passkey',
-  'auth.passkeyCancelled': '已取消 Touch ID / Passkey 验证',
+  'auth.passkeyCancelled': '已取消或此设备尚未绑定 Passkey（请先以 Email 登录后于右上角绑定）',
   'auth.orEmailOtp': '或使用 Email 验证码',
   'auth.testOtpNotice': '测试提示：验证码为 {code}（因尚未配置 RESEND_API_KEY）',
   'auth.githubRequired': '此 CloudSSH 实例需要 GitHub 登录',
