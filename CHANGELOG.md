@@ -23,6 +23,10 @@
     - `SSHSessionDO` 放寬憑據門禁：解除對使用者名稱與密碼的強制非空要求，僅保留主機位址與私鑰模式下的私鑰校驗，將未提供的憑據自動歸一化為空字串。
     - `SSHSession` 認證狀態機優化：未輸入密碼時智慧調整認證優先序，若伺服器支援 `keyboard-interactive` 則優先發起，適配 `chat.hf.co` 即時接受互動認證並指派 PTY 開啟 Shell 的協議行為。
   - 自動化測試：補齊前端指令解析、免密選填與後端匿名連線狀態機完整測試案例。
+- 更新 `README.md` 與文件視覺資源：
+  - 新增「免登入即時體驗 (Instant Demo)」專題章節，介紹 Hugging Face AI 終端一鍵直連、匿名 SSH 連線、智慧指令語法解析與邊緣白名單防護機制。
+  - 附上登入頁試用入口（`quick-trial-login-zh.png`、`quick-trial-login-en.png`）與連線終端（`quick-trial-terminal.png`）高解析實機截圖與視覺說明。
+  - 修復試用卡片標題與免登入標籤在各語系下的折行問題，加入 `whitespace-nowrap` 確保各語系排版美觀工整。
 
 ### Fixed
 

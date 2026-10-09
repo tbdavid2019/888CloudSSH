@@ -6,6 +6,10 @@
 
 ## 功能
 
+- **免登入即時體驗與匿名連線**：
+  - **Hugging Face AI 終端一鍵直連**：登入入口提供免登入試用卡片，免填帳號密碼，一鍵直連 `chat.hf.co` 體驗 AI 終端
+  - **匿名與免密 SSH 支援**：支援連接如 `ssh chat.hf.co` 等公共服務，主機欄位智慧解析 `ssh [user@]host [-p port]` 指令，帳號與密碼改為選填
+  - **邊緣試用沙盒安全隔離**：後端嚴格校驗試用白名單標頭，非登入訪客僅限存取展示伺服器，嚴密阻絕未授權橫向連線
 - 瀏覽器 SSH 終端與多工作階段分頁
 - SFTP 檔案管理、批次傳輸與線上編輯
 - 密碼、私鑰與 SSH `keyboard-interactive`／OTP 認證
@@ -19,6 +23,19 @@
 - 主機指紋 TOFU、DNS rebinding SSRF 防護與分享會話審計
 - 繁體中文、簡體中文與 English
 - 預設佈景：Standard Dark
+
+## 免登入即時體驗 (Instant Demo)
+
+訪客無需輸入帳號密碼或自行準備伺服器，在登入入口直接點擊「**立即體驗**」卡片，即可透過 Cloudflare Workers 邊緣節點一鍵直連 Hugging Face 官方 AI 終端服務（`chat.hf.co:22`）：
+
+| 登入頁免登入一鍵入口 | 連線後之 Hugging Face AI 終端 |
+| :---: | :---: |
+| ![登入入口卡片](docs/images/quick-trial-login-zh.png) | ![連線終端](docs/images/quick-trial-terminal.png) |
+
+### 匿名 SSH 與智慧指令解析
+- **SSH 指令自動解析**：在主機位址欄位可直接貼上如 `ssh chat.hf.co`、`user@host:22` 或 `ssh -p 2222 root@1.2.3.4`，系統將自動提取主機、連接埠與使用者名稱並填入表單。
+- **免密狀態機相容**：使用者名稱與密碼皆為選填，無密碼連線時自動觸發 SSH 鍵盤交互認證（RFC 4256 Keyboard-Interactive），順暢適配各類公開終端與匿名展示環境。
+- **邊緣安全白名單**：在強制要求登入（`REQUIRE_AUTH="true"`）的環境中，後端 `SSHSessionDO` 透過專屬白名單標頭校驗，限制試用連線僅能連往受信任之展示伺服器（`chat.hf.co`），嚴格阻斷未登入狀態下存取其他主機。
 
 ## 身分認證架構 (Authentication Architecture)
 
