@@ -185,6 +185,8 @@ export class SSHTerminal {
   private mobileSelectionStart: TerminalCell | null = null;
   private mobileScrollGesture: MobileScrollGesture | null = null;
   private mobileModifier: MobileModifier | null = null;
+  private wheelRemainder = 0;
+  private lastWheelTime = 0;
   private imeTextarea: HTMLTextAreaElement | null = null;
   private imePendingBaseline: string | null = null;
   private imePendingHandled = false;
@@ -321,6 +323,9 @@ export class SSHTerminal {
       theme: getActiveTerminalTheme(),
       allowProposedApi: true,
       scrollback: 10000,
+      smoothScrollDuration: 0,
+      scrollSensitivity: 2,
+      fastScrollSensitivity: 5,
     });
 
     this.fitAddon = new FitAddon();
@@ -367,6 +372,8 @@ export class SSHTerminal {
       }
       return true;
     });
+
+    this.setupWheelScrolling();
 
     window.addEventListener('resize', this.resizeListener);
     if (this.mobileConnectionRecoveryEnabled) {
@@ -446,6 +453,10 @@ export class SSHTerminal {
 
   getMobileModifier(): MobileModifier | null {
     return this.mobileModifier;
+  }
+
+  get xterm(): Terminal {
+    return this.terminal;
   }
 
   focus(): void {
@@ -676,6 +687,94 @@ export class SSHTerminal {
     const screen = this.container.querySelector<HTMLElement>('.xterm-screen');
     if (!screen || this.terminal.rows < 1) return 0;
     return screen.getBoundingClientRect().height / this.terminal.rows;
+  }
+
+  /**
+   * 适配 Mac 触控板双指滑动与鼠标滚轮：
+   * 1. 累加微步像素（解决 macOS 触控板 micro-events 截断为 0 导致无法滚动的 bug）；
+   * 2. 支持 Shift 3x / Alt 5x 快速滚动加速；
+   * 3. 规避 pinch-to-zoom 双指捏合缩放（ctrlKey=true）误触；
+   * 4. 在 normal 缓冲下平滑滚动 scrollback 历史行；
+   * 5. 在 alternate 缓冲（如 less/vim/man 且未启用远端鼠标协议）下自动转译为上下方向键以翻页；
+   * 6. 远端应用启用 mouse tracking 时放行原生鼠标事件；
+   * 7. 越界时钳位累加器，避免换向时出现滚动死区。
+   */
+  private setupWheelScrolling(): void {
+    this.terminal.attachCustomWheelEventHandler((e: WheelEvent) => {
+      // 规避双指捏合缩放（macOS 触控板 pinch 会触发带 ctrlKey 的 WheelEvent）或纯横向事件
+      if (e.ctrlKey || e.deltaY === 0) {
+        return true;
+      }
+
+      // 若远端应用开启了鼠标协议跟踪（如 tmux、htop、vim :set mouse=a），放行由 xterm 组装协议上报
+      if (this.terminal.modes.mouseTrackingMode !== 'none') {
+        return true;
+      }
+
+      const now = performance.now();
+      // 停顿超过 150ms 或滑动换向时重置累加器
+      if (
+        now - this.lastWheelTime > 150 ||
+        (this.wheelRemainder !== 0 && Math.sign(this.wheelRemainder) !== Math.sign(e.deltaY))
+      ) {
+        this.wheelRemainder = 0;
+      }
+      this.lastWheelTime = now;
+
+      const cellHeight = this.getTerminalCellHeight() || 18;
+      let delta = e.deltaY;
+
+      if (e.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+        delta *= cellHeight;
+      } else if (e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+        delta *= cellHeight * this.terminal.rows;
+      }
+
+      if (e.shiftKey) {
+        delta *= 3;
+      } else if (e.altKey) {
+        delta *= 5;
+      }
+
+      this.wheelRemainder += delta;
+
+      const buffer = this.terminal.buffer.active;
+      if (buffer.type === 'normal') {
+        // 边界保护：若已在历史最顶端或当前最底端，钳位累加器避免累积过大死区
+        if (buffer.viewportY <= 0 && this.wheelRemainder < 0) {
+          this.wheelRemainder = Math.max(this.wheelRemainder, -cellHeight);
+        } else if (buffer.viewportY >= buffer.baseY && this.wheelRemainder > 0) {
+          this.wheelRemainder = Math.min(this.wheelRemainder, cellHeight);
+        }
+
+        const linesToScroll = Math.trunc(this.wheelRemainder / cellHeight);
+        if (linesToScroll !== 0) {
+          this.terminal.scrollLines(linesToScroll);
+          this.wheelRemainder -= linesToScroll * cellHeight;
+        }
+        e.preventDefault();
+        return false;
+      }
+
+      if (buffer.type === 'alternate') {
+        const linesToScroll = Math.trunc(this.wheelRemainder / cellHeight);
+        if (linesToScroll !== 0) {
+          const count = Math.min(Math.abs(linesToScroll), 10);
+          const key = linesToScroll < 0 ? 'arrow_up' : 'arrow_down';
+          const seq = mobileTerminalKeySequence(
+            key,
+            this.terminal.modes.applicationCursorKeysMode,
+            null
+          );
+          this.sendInput(seq.repeat(count));
+          this.wheelRemainder -= linesToScroll * cellHeight;
+        }
+        e.preventDefault();
+        return false;
+      }
+
+      return true;
+    });
   }
 
   /** 将选中文字写入剪贴板，并按实际复制结果提供反馈。 */

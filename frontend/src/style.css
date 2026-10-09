@@ -379,6 +379,39 @@ body.terminal-active {
   text-size-adjust: 100%;
 }
 
+/* xterm 6.0 滚动条与滑块主题化 */
+.xterm .xterm-scrollable-element > .scrollbar {
+  background: var(--scrollbar-track);
+}
+
+.xterm .xterm-scrollable-element > .scrollbar > .slider {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--control-radius);
+  transition: background 120ms ease;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
+.xterm .xterm-scrollable-element > .scrollbar > .slider.active {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--control-radius);
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 .mobile-selection-mode .xterm,
 .mobile-selection-mode .xterm-screen,
 .mobile-selection-mode .xterm-screen canvas {
