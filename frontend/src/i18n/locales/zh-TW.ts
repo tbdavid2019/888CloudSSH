@@ -116,6 +116,7 @@ export const zhTW = {
   'auth.githubRequired': '此 CloudSSH 執行個體需要 GitHub 登入',
   'auth.githubRequiredHint': '登入成功且帳號獲得管理員授權後，才能使用 SSH 和帳號功能。',
   'auth.githubNotConfigured': '管理員尚未完整設定 GitHub OAuth，目前無法登入。',
+  'auth.validationHost': '請輸入主機位址。',
   'auth.validationHostUser': '請輸入主機位址和使用者名稱。',
   'auth.validationPort': '連接埠必須是 1-65535 之間的整數。',
   'auth.validationPassword': '請輸入密碼。',

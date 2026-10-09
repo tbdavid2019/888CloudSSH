@@ -59,7 +59,7 @@ export type ReconnectWebSocketFactory = () => Promise<WebSocket>;
 export interface SSHConnectionConfig {
   host: string;
   port: number;
-  username: string;
+  username?: string;
   password?: string;
   authMethod?: 'password' | 'publickey';
   privateKey?: string;
@@ -979,8 +979,8 @@ export class SSHTerminal {
           JSON.stringify({
             host: config.host,
             port: config.port,
-            username: config.username,
-            password: config.password,
+            username: config.username ?? '',
+            password: config.password ?? '',
             authMethod: config.authMethod,
             privateKey: config.privateKey,
             expectedFingerprint: config.expectedFingerprint,

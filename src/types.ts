@@ -44,8 +44,8 @@ export interface AuthResult {
 export interface SSHConnectionConfig {
   host: string;
   port: number;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
   authMethod?: 'password' | 'publickey';
   privateKey?: string;
   cols?: number;

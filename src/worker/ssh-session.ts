@@ -113,7 +113,7 @@ export class SSHSession {
   private ws: WebSocket;
   private sftpWs: WebSocket | null = null;
   private socket: any;
-  private config: SSHConnectionConfig;
+  private config: SSHConnectionConfig & { username: string; password: string };
   private strictHostKeyVerify: boolean;
   private sftpAttachUrl?: string;
 
@@ -279,7 +279,9 @@ export class SSHSession {
   ) {
     this.ws = ws;
     this.socket = socket;
-    this.config = config;
+    this.config = config as SSHConnectionConfig & { username: string; password: string };
+    this.config.username = (config.username || '').trim();
+    this.config.password = config.password || '';
     this.strictHostKeyVerify = strictHostKeyVerify;
     this.debugMode = debugMode;
     this.sftpAttachUrl = sftpAttachUrl;
@@ -1446,7 +1448,7 @@ export class SSHSession {
           Boolean(this.config.privateKey && this.sessionID)
         );
       case 'password':
-        return this.config.authMethod !== 'publickey' && Boolean(this.config.password);
+        return this.config.authMethod !== 'publickey';
       case 'keyboard-interactive':
         // 分享会话不能把所有者保存的密码交由接收者决定如何响应远端挑战。
         return this.allowKeyboardInteractive && this.config.sessionPolicy?.source !== 'share';
@@ -1474,7 +1476,10 @@ export class SSHSession {
         );
         break;
       case 'password':
-        authRequest = SSHAuth.buildPasswordAuthRequest(this.config.username, this.config.password);
+        authRequest = SSHAuth.buildPasswordAuthRequest(
+          this.config.username,
+          this.config.password || ''
+        );
         break;
       case 'keyboard-interactive':
         this.clearPendingAuthChallenge();
@@ -1496,7 +1501,9 @@ export class SSHSession {
     const configuredFirst: ActiveAuthMethod[] =
       this.config.authMethod === 'publickey'
         ? ['publickey', 'keyboard-interactive']
-        : ['password', 'keyboard-interactive'];
+        : this.config.password
+          ? ['password', 'keyboard-interactive']
+          : ['keyboard-interactive', 'password'];
     // RFC 4252 allows a server to omit the list in a failure response. Keep
     // compatibility with such servers after the harmless "none" probe by
     // falling back to the user's configured primary method.

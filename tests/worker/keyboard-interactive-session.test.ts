@@ -115,6 +115,33 @@ describe('SSHSession keyboard-interactive authentication', () => {
     expect(readAuthMethod(sendEncrypted.mock.calls[1][0])).toBe('keyboard-interactive');
   });
 
+  it('selects keyboard-interactive or none for anonymous connection without password', async () => {
+    const { session, sendEncrypted } = createSession('');
+
+    await (session as any).authenticate();
+    expect(sendEncrypted).toHaveBeenCalledOnce();
+    expect(readAuthMethod(sendEncrypted.mock.calls[0][0])).toBe('none');
+
+    // 针对匿名服务器（如 chat.hf.co）允许的认证方式
+    await (session as any).handleAuthPacket(51, buildFailure('publickey,keyboard-interactive'));
+    expect(sendEncrypted).toHaveBeenCalledTimes(2);
+    expect(readAuthMethod(sendEncrypted.mock.calls[1][0])).toBe('keyboard-interactive');
+  });
+
+  it('normalizes missing username and password to empty strings in SSHSession', () => {
+    const ws = { readyState: 1, send: vi.fn(), close: vi.fn() };
+    const socket = { close: vi.fn() };
+    const session = new SSHSession(ws as unknown as WebSocket, socket as never, {
+      host: 'chat.hf.co',
+      port: 22,
+    });
+    expect((session as any).config.username).toBe('');
+    expect((session as any).config.password).toBe('');
+    expect((session as any).canUseAuthMethod('password')).toBe(true);
+    expect((session as any).canUseAuthMethod('none')).toBe(true);
+    expect((session as any).canUseAuthMethod('keyboard-interactive')).toBe(true);
+  });
+
   it('selects the configured password after discovery and tolerates an omitted method list', async () => {
     const advertised = createSession();
     await (advertised.session as any).authenticate();

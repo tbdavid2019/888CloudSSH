@@ -330,8 +330,17 @@ export class SSHSessionDO {
         }
       }
 
-      if (!config.host || !config.username || (!config.password && !config.privateKey)) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Missing credentials' }));
+      config.username = (config.username || '').trim();
+      config.password = config.password || '';
+
+      if (!config.host) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Missing host' }));
+        ws.close(1011, 'Invalid credentials');
+        return;
+      }
+
+      if (config.authMethod === 'publickey' && !config.privateKey) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Missing private key' }));
         ws.close(1011, 'Invalid credentials');
         return;
       }

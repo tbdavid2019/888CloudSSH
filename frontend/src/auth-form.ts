@@ -45,8 +45,8 @@ async function decryptCredentials(
 ): Promise<{
   host: string;
   port: string;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
   privateKey?: string;
   authMethod?: string;
 } | null> {
@@ -61,6 +61,56 @@ async function decryptCredentials(
   } catch {
     return null;
   }
+}
+
+/**
+ * 智能解析 SSH 目标输入（支持普通域名/IP、[ssh ]user@host[:port]、或 -p 端口指令）
+ */
+export function parseSSHDestination(raw: string): {
+  host: string;
+  port?: number;
+  username?: string;
+} {
+  let text = raw.trim();
+  let port: number | undefined;
+  let username: string | undefined;
+
+  // 1. 剥离 ssh 命令前缀与 -p 端口参数，如 "ssh user@host -p 2222" 或 "ssh host"
+  if (/^ssh\s+/i.test(text)) {
+    text = text.replace(/^ssh\s+/i, '').trim();
+    const pMatch = text.match(/(?:^|\s)-p\s*(\d+)(?:\s|$)/);
+    if (pMatch) {
+      const parsedPort = Number(pMatch[1]);
+      if (Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535) {
+        port = parsedPort;
+      }
+      text = text.replace(/(?:^|\s)-p\s*\d+(?:\s|$)/, ' ').trim();
+    }
+  }
+
+  // 2. 剥离 user@ 前缀
+  if (text.includes('@')) {
+    const atIdx = text.lastIndexOf('@');
+    const userPart = text.slice(0, atIdx).trim();
+    text = text.slice(atIdx + 1).trim();
+    if (userPart) {
+      username = userPart;
+    }
+  }
+
+  // 3. 提取 host:port（支持普通域名/IP 或 [ipv6]:port；排除未加方括号的 IPv6 字面量）
+  const colonPortMatch = text.match(/^(?:\[([^\]]+)\]|([^:]+)):(\d+)$/);
+  if (colonPortMatch) {
+    const candidateHost = colonPortMatch[1] || colonPortMatch[2];
+    const parsedPort = Number(colonPortMatch[3]);
+    if (Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535) {
+      text = candidateHost;
+      port = parsedPort;
+    }
+  }
+
+  const host = text.replace(/^\[|\]$/g, '').trim();
+  return { host, port, username };
 }
 
 export interface ConnectionFormOptions {
@@ -332,10 +382,13 @@ export class ConnectionForm {
           </div>
         </div>
         <div>
-          <label for="username" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2" data-i18n="auth.user">用户名</label>
+          <label for="username" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2">
+            <span data-i18n="auth.user">用户名</span>
+            <span class="text-[9px] opacity-60 ml-1" data-i18n="common.optional">可选</span>
+          </label>
           <div class="flex items-center">
             <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">person</span>
-            <input id="username" class="terminal-input text-[13px]" placeholder="admin" type="text" required>
+            <input id="username" class="terminal-input text-[13px]" placeholder="admin" type="text">
           </div>
         </div>
         <div>
@@ -485,7 +538,9 @@ export class ConnectionForm {
         'flex justify-between items-center text-xs p-2 border border-dim bg-surface/50 hover:bg-surface hover:border-[var(--accent)] transition-all cursor-pointer group relative';
 
       const authLabel = item.authMethod === 'publickey' ? 'KEY' : 'PWD';
-      const labelText = `${item.username}@${item.host}:${item.port}`;
+      const labelText = item.username
+        ? `${item.username}@${item.host}:${item.port}`
+        : `${item.host}:${item.port}`;
 
       // pi-lens-ignore: no-inner-html
       itemEl.innerHTML = `
@@ -518,7 +573,7 @@ export class ConnectionForm {
   private async fillConnection(item: {
     host: string;
     port: number;
-    username: string;
+    username?: string;
     authMethod: 'password' | 'publickey';
     encryptedCred?: string;
     region?: string;
@@ -615,11 +670,24 @@ export class ConnectionForm {
   }
 
   private async handleConnect(): Promise<void> {
-    const hostInput = (document.getElementById('host') as HTMLInputElement).value;
-    const host = hostInput.replace(/^\[|\]$/g, '').trim();
+    const hostInputElement = document.getElementById('host') as HTMLInputElement;
     const portInput = document.getElementById('port') as HTMLInputElement;
+    const usernameInput = document.getElementById('username') as HTMLInputElement;
+
+    const parsed = parseSSHDestination(hostInputElement.value);
+    const host = parsed.host;
+    if (parsed.host) {
+      hostInputElement.value = parsed.host;
+    }
+    if (parsed.port !== undefined) {
+      portInput.value = parsed.port.toString();
+    }
+    if (parsed.username && !usernameInput.value.trim()) {
+      usernameInput.value = parsed.username;
+    }
+
     const port = parsePort(portInput.value);
-    const username = (document.getElementById('username') as HTMLInputElement).value;
+    const username = usernameInput.value.trim();
     const password = (document.getElementById('password') as HTMLInputElement).value;
     const privateKey = (document.getElementById('private-key') as HTMLTextAreaElement).value;
     const selectedPassword = this.authMode === 'password' ? password : undefined;
@@ -629,12 +697,12 @@ export class ConnectionForm {
     const anonRegionSelect = document.getElementById('anon-region') as HTMLSelectElement | null;
     const regionValue = anonRegionSelect ? anonRegionSelect.value : '';
 
-    if (!host || !username) {
-      notify(t('auth.validationHostUser'), {
+    if (!host) {
+      notify(t('auth.validationHost'), {
         title: t('auth.incompleteConnection'),
         variant: 'warning',
       });
-      (document.getElementById(host ? 'username' : 'host') as HTMLInputElement)?.focus();
+      hostInputElement.focus();
       return;
     }
 
@@ -644,15 +712,6 @@ export class ConnectionForm {
         variant: 'warning',
       });
       portInput.focus();
-      return;
-    }
-
-    if (this.authMode === 'password' && !password) {
-      notify(t('auth.validationPassword'), {
-        title: t('auth.incompleteCredentials'),
-        variant: 'warning',
-      });
-      (document.getElementById('password') as HTMLInputElement)?.focus();
       return;
     }
 
@@ -700,7 +759,7 @@ export class ConnectionForm {
       /* 本地存储损坏时回退为空列表，无需上报 */
     }
 
-    const id = `${username}@${host}:${port}`;
+    const id = username ? `${username}@${host}:${port}` : `${host}:${port}`;
     const newRecord = {
       id,
       host,
@@ -727,14 +786,14 @@ export class ConnectionForm {
 
     // 通过 TabManager 创建新标签并切换到终端视图
     const tm = this.options.getTabManager();
-    const displayLabel = `${username}@${host}`;
+    const displayLabel = username ? `${username}@${host}` : host;
 
     // 切换到终端视图
     document.getElementById('auth-section')!.classList.add('hidden');
     document.getElementById('terminal-section')!.classList.remove('hidden');
     document.getElementById('terminal-section')!.classList.add('flex');
 
-    const tab = tm.createTab(displayLabel, { host, port, username });
+    const tab = tm.createTab(displayLabel, { host, port, username: username || undefined });
     const terminal = tab.terminal;
 
     terminal.mount();

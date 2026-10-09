@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { getNetworkQuality } from '../frontend/src/network-quality';
 import { osDisplayName, osIconSvg } from '../frontend/src/os-icons';
+import { parseSSHDestination } from '../frontend/src/auth-form';
 import { parsePort } from '../frontend/src/port';
 import {
   filterServers,
@@ -166,6 +167,48 @@ describe('连接表单提交与端口校验', () => {
     // 清空语句必须出现在 terminal.connect 之后（连接成功后才清空）
     expect(clearPwIdx).toBeGreaterThan(connectIdx);
     expect(clearKeyIdx).toBeGreaterThan(connectIdx);
+  });
+
+  it('智能解析 SSH 目标输入（命令前缀、用户名与端口）', () => {
+    expect(parseSSHDestination('ssh chat.hf.co')).toEqual({
+      host: 'chat.hf.co',
+      port: undefined,
+      username: undefined,
+    });
+    expect(parseSSHDestination('ssh root@chat.hf.co')).toEqual({
+      host: 'chat.hf.co',
+      port: undefined,
+      username: 'root',
+    });
+    expect(parseSSHDestination('ssh root@chat.hf.co -p 2222')).toEqual({
+      host: 'chat.hf.co',
+      port: 2222,
+      username: 'root',
+    });
+    expect(parseSSHDestination('admin@10.0.0.1:2222')).toEqual({
+      host: '10.0.0.1',
+      port: 2222,
+      username: 'admin',
+    });
+    expect(parseSSHDestination('[2001:db8::1]:2222')).toEqual({
+      host: '2001:db8::1',
+      port: 2222,
+      username: undefined,
+    });
+    expect(parseSSHDestination('2001:db8::1')).toEqual({
+      host: '2001:db8::1',
+      port: undefined,
+      username: undefined,
+    });
+  });
+
+  it('用户名与密码输入框均为可选，允许匿名与免密连接', () => {
+    const authSource = readFileSync(
+      new URL('../frontend/src/auth-form.ts', import.meta.url),
+      'utf8'
+    );
+    expect(authSource).not.toMatch(/id="username"[^>]*required/);
+    expect(authSource).not.toContain("this.authMode === 'password' && !password");
   });
 });
 

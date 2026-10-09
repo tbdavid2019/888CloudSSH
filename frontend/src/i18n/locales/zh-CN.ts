@@ -113,6 +113,7 @@ export const zhCN = {
   'auth.githubRequired': '此 CloudSSH 实例需要 GitHub 登录',
   'auth.githubRequiredHint': '登录成功且账号获得管理员授权后，才能使用 SSH 和账号功能。',
   'auth.githubNotConfigured': '管理员尚未完整配置 GitHub OAuth，当前无法登录。',
+  'auth.validationHost': '请输入主机地址。',
   'auth.validationHostUser': '请输入主机地址和用户名。',
   'auth.validationPort': '端口必须是 1-65535 之间的整数。',
   'auth.validationPassword': '请输入密码。',

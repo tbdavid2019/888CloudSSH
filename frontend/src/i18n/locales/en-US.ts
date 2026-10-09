@@ -151,6 +151,7 @@ export const enUS: Record<keyof typeof zhCN, string> = {
     'Sign in with an administrator-approved account before using SSH and account features.',
   'auth.githubNotConfigured':
     'GitHub OAuth is not fully configured, so sign-in is currently unavailable.',
+  'auth.validationHost': 'Enter a host address.',
   'auth.validationHostUser': 'Enter a host address and username.',
   'auth.validationPort': 'Port must be an integer from 1 to 65535.',
   'auth.validationPassword': 'Enter a password.',

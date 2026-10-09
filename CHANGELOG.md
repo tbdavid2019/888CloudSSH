@@ -2,6 +2,21 @@
 
 888CloudSSH 的變更紀錄使用日期，不使用版本號。
 
+## 2026-10-09
+
+### Added
+
+- 支援匿名與免密 SSH 連線（如 Hugging Face 終端 `ssh chat.hf.co` 等公共服務）：
+  - 前端連接介面（`auth-form.ts`）：
+    - 主機位址欄位支援智慧指令解析（`parseSSHDestination`）：自動解析並相容 `ssh [user@]host [-p port]`、`user@host`、`host:port` 及 `[ipv6]:port`，自動填入主機、連接埠與使用者名稱。
+    - 使用者名稱與密碼改為選填：移除使用者名稱輸入框的 `required` 限制，並在標籤加上「可選」提示；密碼模式不再強制攔截空密碼，允許匿名或免密帳號直接發起連線。
+    - 標籤頁與最近連線記錄展示優化：使用者名稱為空時自動隱藏 `@` 前綴，乾淨展示主機位址。
+    - 多國語系同步：補齊繁體中文、簡體中文與英文的 `auth.validationHost` 詞條。
+  - 後端與 Durable Objects（`durable-object.ts` / `ssh-session.ts`）：
+    - `SSHSessionDO` 放寬憑據門禁：解除對使用者名稱與密碼的強制非空要求，僅保留主機位址與私鑰模式下的私鑰校驗，將未提供的憑據自動歸一化為空字串。
+    - `SSHSession` 認證狀態機優化：未輸入密碼時智慧調整認證優先序，若伺服器支援 `keyboard-interactive` 則優先發起，適配 `chat.hf.co` 即時接受互動認證並指派 PTY 開啟 Shell 的協議行為。
+  - 自動化測試：補齊前端指令解析、免密選填與後端匿名連線狀態機完整測試案例。
+
 ## 2026-09-23
 
 ### Added
