@@ -186,4 +186,68 @@ test.describe('终端触控板与滚轮平滑滚动', () => {
     // 向下滑动发送 Down 箭头 (\x1b[B 或 \x1bOB)
     expect(result.sentInputs.some((seq) => seq.includes('\x1b[B') || seq.includes('\x1bOB'))).toBe(true);
   });
+
+  test('normal 缓冲在无历史行（baseY=0，如 chat.hf.co 全屏 TUI）时滚轮向上向下发送光标键序列', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await page.goto('/?lang=zh-CN');
+
+    const result = await page.evaluate(async () => {
+      const terminalModule = await (window as any).eval("import('/src/terminal.ts')");
+      const root = document.createElement('div');
+      root.id = 'terminal-tui-test-root';
+      root.style.position = 'fixed';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.width = '800px';
+      root.style.height = '400px';
+      root.style.zIndex = '9999';
+      document.body.appendChild(root);
+
+      const terminal = new terminalModule.SSHTerminal(root.id);
+      terminal.mount();
+      const xterm = terminal.xterm;
+
+      // 仅写入几行，未超出屏幕（baseY === 0，模拟全屏 TUI 应用）
+      await new Promise<void>((resolve) => xterm.write('Welcome to chat.hf.co\r\nPrompt: ', resolve));
+
+      const sentInputs: string[] = [];
+      terminal.sendInput = (data: string) => {
+        sentInputs.push(data);
+        return true;
+      };
+
+      const screen = root.querySelector('.xterm-screen')!;
+      // 模拟向上滚动（微步累加超过一个字符行高度，如 -50px）
+      screen.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: -50,
+          deltaMode: 0,
+        })
+      );
+
+      // 模拟向下滚动（+50px）
+      screen.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 50,
+          deltaMode: 0,
+        })
+      );
+
+      return {
+        baseY: xterm.buffer.active.baseY,
+        bufferType: xterm.buffer.active.type,
+        sentInputs,
+      };
+    });
+
+    expect(result.baseY).toBe(0);
+    expect(result.bufferType).toBe('normal');
+    expect(result.sentInputs.length).toBeGreaterThan(0);
+    expect(result.sentInputs.some((seq) => seq.includes('\x1b[A') || seq.includes('\x1bOA'))).toBe(true);
+    expect(result.sentInputs.some((seq) => seq.includes('\x1b[B') || seq.includes('\x1bOB'))).toBe(true);
+  });
 });

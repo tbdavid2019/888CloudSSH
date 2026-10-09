@@ -82,6 +82,7 @@ function initServerPaginationBreakpoints(): void {
 function getTabManager(): TabManager {
   if (!tabManager) {
     tabManager = new TabManager('tab-bar', 'terminal-area');
+    (window as any).tabManager = tabManager;
     tabManager.setAllTabsClosedHandler(() => {
       showOfflineUI();
     });

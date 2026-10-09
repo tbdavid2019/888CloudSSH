@@ -340,6 +340,12 @@ export class SSHTerminal {
     this.terminalDisposables.push(
       this.terminal.onSelectionChange(() => {
         this.notifySelectionChanged();
+      }),
+      this.terminal.onScroll(() => {
+        this.updateScrollbackState();
+      }),
+      this.terminal.onLineFeed(() => {
+        this.updateScrollbackState();
       })
     );
     this.container.addEventListener('pointerdown', this.selectionPointerDownListener, true);
@@ -739,7 +745,10 @@ export class SSHTerminal {
       this.wheelRemainder += delta;
 
       const buffer = this.terminal.buffer.active;
-      if (buffer.type === 'normal') {
+      const hasScrollback = buffer.baseY > 0;
+
+      // 1. 若当前在 normal 缓冲区且已有滚动历史行（baseY > 0），按历史行平滑滚动
+      if (buffer.type === 'normal' && hasScrollback) {
         // 边界保护：若已在历史最顶端或当前最底端，钳位累加器避免累积过大死区
         if (buffer.viewportY <= 0 && this.wheelRemainder < 0) {
           this.wheelRemainder = Math.max(this.wheelRemainder, -cellHeight);
@@ -756,10 +765,16 @@ export class SSHTerminal {
         return false;
       }
 
-      if (buffer.type === 'alternate') {
-        const linesToScroll = Math.trunc(this.wheelRemainder / cellHeight);
-        if (linesToScroll !== 0) {
-          const count = Math.min(Math.abs(linesToScroll), 10);
+      // 2. 若无本地历史行（baseY === 0，如全屏 TUI 交互应用 chat.hf.co/nano）或处于 alternate 备用缓冲（less/vim/man）：
+      // 将滚轮滑动转换为上下光标键或 PageUp/PageDown 发送给远端服务端，实现原生终端（如 Ghostty）一样的平滑滚动/翻页
+      const linesToScroll = Math.trunc(this.wheelRemainder / cellHeight);
+      if (linesToScroll !== 0) {
+        if (e.shiftKey || Math.abs(linesToScroll) >= 6) {
+          const key = linesToScroll < 0 ? 'page_up' : 'page_down';
+          const seq = mobileTerminalKeySequence(key, false, null);
+          this.sendInput(seq);
+        } else {
+          const count = Math.min(Math.abs(linesToScroll), 6);
           const key = linesToScroll < 0 ? 'arrow_up' : 'arrow_down';
           const seq = mobileTerminalKeySequence(
             key,
@@ -767,14 +782,17 @@ export class SSHTerminal {
             null
           );
           this.sendInput(seq.repeat(count));
-          this.wheelRemainder -= linesToScroll * cellHeight;
         }
-        e.preventDefault();
-        return false;
+        this.wheelRemainder -= linesToScroll * cellHeight;
       }
-
-      return true;
+      e.preventDefault();
+      return false;
     });
+  }
+
+  private updateScrollbackState(): void {
+    const hasScrollback = this.terminal.buffer.active.baseY > 0;
+    this.container.classList.toggle('has-scrollback', hasScrollback);
   }
 
   /** 将选中文字写入剪贴板，并按实际复制结果提供反馈。 */
@@ -933,6 +951,7 @@ export class SSHTerminal {
    */
   clearBuffer(): void {
     this.terminal.clear();
+    this.updateScrollbackState();
   }
 
   // ==================== known_hosts (TOFU) ====================

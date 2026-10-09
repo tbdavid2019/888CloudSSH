@@ -32,6 +32,7 @@
 
 - 修復 Mac 觸控板雙指與滑鼠滾輪滾動終端歷史輸出問題（像 Ghostty/原生終端一樣平滑操作）：
   - 核心問題診斷：xterm.js 6.0 內部滾動處理在 macOS 觸控板發出高頻像素級微步事件（`deltaMode: 0`, `deltaY` ~ 1px–5px）時，因直接截斷整數（`Math.trunc`）導致幾乎所有微步全被捨棄為 0，且內建動畫與 macOS 觸控板慣性產生衝突，導致長輸出時雙指向上滑動無法看到上方內容。
+  - 支援全螢幕 TUI 交互應用（如 `chat.hf.co` 等在正常緩衝區原位刷新、`baseY=0` 的終端應用）：原先僅在備用緩衝區轉譯按鍵，導致 `chat.hf.co` 在 normal 緩衝且無本地歷史行時調用 `scrollLines()` 空轉吞沒事件；現升級為在無本地歷史行（`baseY=0`）或備用緩衝區時，將滾輪滑動智慧轉譯為上下方向鍵序列（或 Shift/快速滑動時轉譯為 PageUp/PageDown）發送給遠端應用，完美實現 `chat.hf.co` 與 TUI 應用的順暢滾動。
   - 觸控板與滾輪累加平滑滾動（`setupWheelScrolling`）：
     - 透過 `terminal.attachCustomWheelEventHandler` 建立微步累加器（`wheelRemainder`），精準記錄每一次觸控板微步移動，跨事件平滑累計並按字元行高滾動（`scrollLines`），不遺失任何像素。
     - 停頓超時（>150ms）或手勢換向時自動重置累加器；抵達歷史頂端或底部時鉗位累加值，徹底杜絕換向時的滾動死區。
@@ -39,9 +40,12 @@
     - 智慧過濾 macOS 雙指捏合縮放手勢（`ctrlKey=true`），避免 pinch-to-zoom 誤觸終端行滾動。
     - 在備用螢幕緩衝區（alternate buffer，如 `less`、`vim`、`man` 等應用且未開啟遠端滑鼠協議時）自動轉譯為上下方向鍵序列（`\x1b[A` / `\x1b[B` 或 application cursor mode `\x1bOA` / `\x1bOB`），實現像 Ghostty 一樣自然的翻頁體驗。
     - 若遠端應用開啟了滑鼠協議追蹤（如 `tmux` 開啟滑鼠、`htop` 等），放行原生滑鼠協議上報。
+  - 實現終端高可見度主題滾動條（Scrollbar）：
+    - 建立 `has-scrollback` 狀態追蹤（監聽 `onScroll`、`onLineFeed`、`clearBuffer` 等事件），在存在歷史輸出時常駐顯示半透明（55% 透明度）的滾動條軌道與滑塊，滑鼠懸浮或拖動時全亮並微增寬度。
+    - 支援直接以滑鼠拖動滑塊或點擊滾動條軌道任意處跳轉至歷史輸出，徹底擺脫系統原生滾動條消失或不可見的問題。
+    - 在無歷史滾動內容（如全新 Shell 或全螢幕 TUI 應用）時自動隱藏原生虛擬滾動條，保持介面簡潔。
   - 終端配置最佳化：將 `smoothScrollDuration` 設為 `0`，停用內部多影格補間動畫以消除與 macOS 系統級滑動慣性的衝突，並將滾輪敏感度設為流暢的基準值。
-  - xterm 6.0 虛擬滾條主題化（`style.css`）：為 `.xterm-scrollable-element > .scrollbar > .slider` 與 `.xterm-viewport::-webkit-scrollbar` 補齊主題變數（`--scrollbar-track`、`--scrollbar-thumb`、`--scrollbar-thumb-hover`），確保滾動時進度滑塊清晰可見並隨主題自適應。
-  - 自動化測試覆蓋：新增 `tests/e2e/terminal-wheel.spec.ts`，涵蓋 Mac 觸控板雙指向上/向下平滑滾動、雙指捏合防誤觸以及備用螢幕翻頁轉譯等端到端測試。
+  - 自動化測試覆蓋：新增 `tests/e2e/terminal-wheel.spec.ts`，涵蓋 Mac 觸控板雙指向上/向下平滑滾動、雙指捏合防誤觸、備用螢幕翻頁轉譯以及 `baseY=0` TUI 應用滾輪轉譯等端到端測試。
 - 修復免登入試用一鍵連線時 DOM 元素空指針錯誤：
   - 在強制登入環境（`REQUIRE_AUTH="true"`）下，登入卡片預設為 Email 登入元件，DOM 中不存在 `#password` 或 `#private-key` 元素。
   - 修復 `auth-form.ts` 中 `handleConnectHfChat` 與 `handleConnect` 連線建立後清空密碼與私鑰的邏輯，補上空值防護檢查（null-check），徹底解決 `Cannot set properties of null (setting 'value')` 異常觸發 catch 關閉標籤頁與彈出連線資訊不完整錯誤的問題。

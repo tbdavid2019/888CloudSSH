@@ -379,20 +379,52 @@ body.terminal-active {
   text-size-adjust: 100%;
 }
 
-/* xterm 6.0 滚动条与滑块主题化 */
+/* xterm 6.0 滚动条轨道与滑块主题化与常驻高可见度 */
 .xterm .xterm-scrollable-element > .scrollbar {
-  background: var(--scrollbar-track);
+  background: var(--scrollbar-track) !important;
+  width: 10px !important;
+  right: 0 !important;
+  z-index: 10;
+  cursor: pointer;
+  transition: opacity 150ms ease, width 150ms ease;
+}
+
+/* 具有历史滚动内容时保持常驻半透明可见，悬浮或拖动时全亮 */
+.has-scrollback .xterm .xterm-scrollable-element > .scrollbar,
+.xterm.has-scrollback .xterm-scrollable-element > .scrollbar {
+  opacity: 0.55 !important;
+  pointer-events: auto !important;
+}
+
+.has-scrollback .xterm .xterm-scrollable-element > .scrollbar:hover,
+.has-scrollback .xterm .xterm-scrollable-element > .scrollbar.visible,
+.xterm.has-scrollback .xterm-scrollable-element > .scrollbar:hover,
+.xterm.has-scrollback .xterm-scrollable-element > .scrollbar.visible {
+  opacity: 1 !important;
+  width: 12px !important;
 }
 
 .xterm .xterm-scrollable-element > .scrollbar > .slider {
-  background: var(--scrollbar-thumb);
-  border-radius: var(--control-radius);
+  background: var(--scrollbar-thumb) !important;
+  border-radius: 4px;
+  width: 8px !important;
+  margin-left: 1px;
+  min-height: 24px !important;
   transition: background 120ms ease;
 }
 
 .xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
 .xterm .xterm-scrollable-element > .scrollbar > .slider.active {
-  background: var(--scrollbar-thumb-hover);
+  background: var(--scrollbar-thumb-hover) !important;
+  width: 10px !important;
+  margin-left: 1px;
+}
+
+/* 无历史滚动内容时完全隐藏原生滚动条 */
+:not(.has-scrollback) > .xterm .xterm-scrollable-element > .scrollbar,
+.xterm:not(.has-scrollback) .xterm-scrollable-element > .scrollbar {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .xterm .xterm-viewport::-webkit-scrollbar {
