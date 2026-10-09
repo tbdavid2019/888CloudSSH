@@ -77,7 +77,7 @@
       defer
     ></script>
   </head>
-  <body class="min-h-screen font-body text-sm">
+  <body class="min-h-screen font-body text-base">
     <div id="app">
       <!-- Login Page (匿名连接) -->
       <div
@@ -86,7 +86,7 @@
       >
         <div class="scanlines"></div>
         <div class="flicker"></div>
-        <main class="w-full max-w-md relative z-10">
+        <main class="w-full max-w-lg relative z-10">
           <button
             id="back-to-terminal-from-auth-btn"
             class="hidden cyber-button text-primary py-2 px-3 text-xs font-bold tracking-[0.1em] uppercase flex items-center gap-1.5 mx-auto mb-4"
@@ -103,11 +103,11 @@
             >
           </button>
           <div class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-primary tracking-tighter mb-2">
+            <h1 class="text-3xl sm:text-4xl font-bold text-primary tracking-tighter mb-2">
               CloudSSH<span class="blinking-cursor"></span>
             </h1>
           </div>
-          <div class="cyber-box p-6 shadow-2xl relative">
+          <div class="cyber-box p-6 sm:p-7 shadow-2xl relative">
             <div
               class="theme-accent-line absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-50"
             ></div>
@@ -117,7 +117,7 @@
             >
               <div id="auth-card-title-container">
                 <span
-                  class="text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)]"
+                  class="text-sm font-bold tracking-[0.1em] text-[var(--accent-secondary)]"
                   data-i18n="auth.loginTitle"
                   >登入工作區</span
                 >
@@ -126,7 +126,7 @@
                 <div data-language-switcher></div>
                 <span
                   class="material-symbols-outlined text-[var(--accent-secondary)]"
-                  style="font-variation-settings: &quot;FILL&quot; 0"
+                  style="font-variation-settings: &quot;FILL&quot; 0; font-size: 20px;"
                   >terminal</span
                 >
               </div>
@@ -134,12 +134,12 @@
             <!-- Hugging Face AI Instant Demo Banner -->
             <div
               id="quick-trial-card"
-              class="mb-6 p-3.5 border border-[var(--accent)]/30 bg-[var(--accent)]/5 hover:border-[var(--accent)]/60 transition-all relative overflow-hidden"
+              class="mb-6 p-4 sm:p-4.5 border border-[var(--accent)]/40 bg-[var(--accent)]/5 hover:border-[var(--accent)]/70 transition-all relative overflow-hidden"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5 min-w-0">
                   <div
-                    class="w-8 h-8 rounded shrink-0 bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center text-base select-none"
+                    class="w-10 h-10 rounded shrink-0 bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center text-xl select-none"
                     aria-hidden="true"
                   >
                     🤗
@@ -147,18 +147,18 @@
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
                       <span
-                        class="text-xs font-bold tracking-wider text-on-surface"
+                        class="text-sm sm:text-base font-bold tracking-wide text-on-surface"
                         data-i18n="auth.hfChatTitle"
                         >Hugging Face AI</span
                       >
                       <span
-                        class="text-[9px] font-mono uppercase px-1.5 py-0.2 border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10"
+                        class="text-xs font-mono uppercase px-2 py-0.5 border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 font-bold"
                         data-i18n="auth.hfChatFreeBadge"
                         >免登入</span
                       >
                     </div>
                     <div
-                      class="text-[11px] text-muted truncate mt-0.5"
+                      class="text-xs sm:text-sm text-muted mt-0.5 leading-normal"
                       data-i18n="auth.hfChatTrialDesc"
                     >
                       免填帳號密碼，一鍵直連 chat.hf.co 體驗 AI 終端
@@ -168,11 +168,11 @@
                 <button
                   type="button"
                   id="quick-hf-chat-btn"
-                  class="connect-btn shrink-0 px-3 py-1.5 text-xs font-bold tracking-[0.1em] uppercase flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="connect-btn shrink-0 px-4 py-2 text-xs sm:text-sm font-bold tracking-[0.1em] uppercase flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   data-i18n-aria-label="auth.hfChatTrialAction"
                   aria-label="立即體驗"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true"
+                  <span class="material-symbols-outlined" style="font-size: 18px;" aria-hidden="true"
                     >bolt</span
                   >
                   <span data-i18n="auth.hfChatTrialAction">立即體驗</span>
@@ -182,7 +182,7 @@
             <div id="connection-form-container"></div>
           </div>
           <div
-            class="mt-8 text-center text-[13px] text-muted"
+            class="mt-8 text-center text-sm text-muted"
             data-i18n="auth.systemReady"
           >
             系统就绪，等待输入。
@@ -190,7 +190,7 @@
           <div class="mt-4 text-center">
             <a
               href="https://github.com/tbdavid2019/888CloudSSH"
-              class="text-[13px] text-primary hover:underline transition-colors tracking-widest uppercase"
+              class="text-sm text-primary hover:underline transition-colors tracking-widest uppercase"
               >[ GitHub Open Source ]</a
             >
           </div>

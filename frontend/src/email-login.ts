@@ -40,14 +40,14 @@ export class EmailLoginForm {
           <button
             id="passkey-login-btn"
             type="button"
-            class="cyber-button w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 border border-[var(--accent)]/50 hover:border-[var(--accent)] text-[var(--accent)] bg-elevated hover:bg-surface transition-all shadow-sm"
+            class="cyber-button w-full py-3.5 px-4 text-sm sm:text-base font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2 border border-[var(--accent)]/50 hover:border-[var(--accent)] text-[var(--accent)] bg-elevated hover:bg-surface transition-all shadow-sm cursor-pointer"
           >
-            <span class="material-symbols-outlined" style="font-size: 20px;">fingerprint</span>
+            <span class="material-symbols-outlined" style="font-size: 22px;">fingerprint</span>
             <span data-i18n="auth.passkeyLoginAction">${t('auth.passkeyLoginAction')}</span>
           </button>
           <div class="relative flex py-1 items-center">
             <div class="flex-grow border-t border-dim"></div>
-            <span class="flex-shrink mx-3 text-[11px] text-muted tracking-wider" data-i18n="auth.orEmailOtp">${t('auth.orEmailOtp')}</span>
+            <span class="flex-shrink mx-3 text-xs sm:text-sm text-muted tracking-wider" data-i18n="auth.orEmailOtp">${t('auth.orEmailOtp')}</span>
             <div class="flex-grow border-t border-dim"></div>
           </div>
         </div>
@@ -57,12 +57,12 @@ export class EmailLoginForm {
         <!-- OTP Login Mode -->
         <div id="email-otp-view" class="space-y-4">
           <div class="space-y-1.5">
-            <label for="email-input" class="block text-xs font-bold tracking-[0.1em] text-muted uppercase" data-i18n="auth.emailLabel">電子郵件</label>
+            <label for="email-input" class="block text-sm font-bold tracking-[0.05em] text-muted uppercase" data-i18n="auth.emailLabel">電子郵件</label>
             <div class="flex items-center">
-              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">mail</span>
+              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">mail</span>
               <input
                 id="email-input"
-                class="terminal-input text-[13px] w-full"
+                class="terminal-input text-base w-full py-2.5"
                 type="email"
                 placeholder="you@example.com"
                 value=""
@@ -81,9 +81,9 @@ export class EmailLoginForm {
             <button
               id="send-otp-btn"
               type="button"
-              class="connect-btn w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
+              class="connect-btn w-full py-3.5 px-4 text-sm sm:text-base font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
             >
-              <span class="material-symbols-outlined" style="font-size: 18px;">send</span>
+              <span class="material-symbols-outlined" style="font-size: 20px;">send</span>
               <span data-i18n="auth.sendOtp">獲取驗證碼</span>
             </button>
           </div>
@@ -92,21 +92,21 @@ export class EmailLoginForm {
           <div id="verify-otp-container" class="space-y-3 hidden">
             <div class="space-y-1.5">
               <div class="flex justify-between items-center">
-                <label for="otp-input" class="block text-xs font-bold tracking-[0.1em] text-muted uppercase" data-i18n="auth.otpCode">6 位數驗證碼</label>
+                <label for="otp-input" class="block text-sm font-bold tracking-[0.05em] text-muted uppercase" data-i18n="auth.otpCode">6 位數驗證碼</label>
                 <button
                   id="resend-otp-btn"
                   type="button"
-                  class="text-xs text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="text-xs sm:text-sm text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled
                 >
                   <span data-i18n="auth.resendReady">重新發送驗證碼</span>
                 </button>
               </div>
               <div class="flex items-center">
-                <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">lock</span>
+                <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">lock</span>
                 <input
                   id="otp-input"
-                  class="terminal-input text-center text-base font-mono tracking-[0.4em] font-bold w-full"
+                  class="terminal-input text-center text-lg sm:text-xl font-mono tracking-[0.4em] font-bold w-full py-2.5"
                   type="text"
                   inputmode="numeric"
                   pattern="[0-9]{6}"
@@ -120,9 +120,9 @@ export class EmailLoginForm {
             <button
               id="verify-otp-btn"
               type="button"
-              class="connect-btn w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
+              class="connect-btn w-full py-3.5 px-4 text-sm sm:text-base font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
             >
-              <span class="material-symbols-outlined" style="font-size: 18px;">login</span>
+              <span class="material-symbols-outlined" style="font-size: 20px;">login</span>
               <span data-i18n="auth.verifyAndLogin">驗證並登入</span>
             </button>
           </div>
@@ -131,12 +131,12 @@ export class EmailLoginForm {
         <!-- Recovery Code Mode -->
         <div id="email-recovery-view" class="space-y-4 hidden">
           <div class="space-y-1.5">
-            <label for="recovery-email-input" class="block text-xs font-bold tracking-[0.1em] text-muted uppercase" data-i18n="auth.emailLabel">電子郵件</label>
+            <label for="recovery-email-input" class="block text-sm font-bold tracking-[0.05em] text-muted uppercase" data-i18n="auth.emailLabel">電子郵件</label>
             <div class="flex items-center">
-              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">mail</span>
+              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">mail</span>
               <input
                 id="recovery-email-input"
-                class="terminal-input text-[13px] w-full"
+                class="terminal-input text-base w-full py-2.5"
                 type="email"
                 placeholder="you@example.com"
                 value=""
@@ -147,12 +147,12 @@ export class EmailLoginForm {
           </div>
 
           <div class="space-y-1.5">
-            <label for="recovery-code-input" class="block text-xs font-bold tracking-[0.1em] text-muted uppercase" data-i18n="auth.recoveryCode">8 位救援碼 (xxxx-xxxx)</label>
+            <label for="recovery-code-input" class="block text-sm font-bold tracking-[0.05em] text-muted uppercase" data-i18n="auth.recoveryCode">8 位救援碼 (xxxx-xxxx)</label>
             <div class="flex items-center">
-              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">vpn_key</span>
+              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">vpn_key</span>
               <input
                 id="recovery-code-input"
-                class="terminal-input text-center text-sm font-mono tracking-[0.2em] w-full uppercase"
+                class="terminal-input text-center text-base font-mono tracking-[0.2em] w-full py-2.5 uppercase"
                 type="text"
                 maxlength="9"
                 placeholder="abcd-1234"
@@ -163,21 +163,21 @@ export class EmailLoginForm {
           <button
             id="verify-recovery-btn"
             type="button"
-            class="connect-btn w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
+            class="connect-btn w-full py-3.5 px-4 text-sm sm:text-base font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2"
           >
-            <span class="material-symbols-outlined" style="font-size: 18px;">key</span>
+            <span class="material-symbols-outlined" style="font-size: 20px;">key</span>
             <span data-i18n="auth.recoveryLoginAction">救援登入</span>
           </button>
         </div>
 
         <!-- Footer / Switching options -->
-        <div class="pt-3 border-t border-dim flex items-center justify-between text-xs">
+        <div class="pt-4 border-t border-dim flex items-center justify-between text-sm">
           <button
             id="toggle-mode-btn"
             type="button"
-            class="text-muted hover:text-primary transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+            class="text-muted hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0 text-sm"
           >
-            <span class="material-symbols-outlined" style="font-size: 14px;">key</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;">key</span>
             <span id="toggle-mode-label" data-i18n="auth.useRecoveryCode">使用救援碼登入</span>
           </button>
           ${
@@ -186,9 +186,9 @@ export class EmailLoginForm {
               <button
                 id="switch-to-direct-btn"
                 type="button"
-                class="text-muted hover:text-primary transition-colors flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+                class="text-muted hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0 text-sm"
               >
-                <span class="material-symbols-outlined" style="font-size: 14px;">terminal</span>
+                <span class="material-symbols-outlined" style="font-size: 16px;">terminal</span>
                 <span data-i18n="auth.directTab">匿名連線</span>
               </button>
               `

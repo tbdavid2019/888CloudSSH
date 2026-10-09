@@ -24,6 +24,16 @@
     - `SSHSession` 認證狀態機優化：未輸入密碼時智慧調整認證優先序，若伺服器支援 `keyboard-interactive` 則優先發起，適配 `chat.hf.co` 即時接受互動認證並指派 PTY 開啟 Shell 的協議行為。
   - 自動化測試：補齊前端指令解析、免密選填與後端匿名連線狀態機完整測試案例。
 
+### Fixed
+
+- 修復免登入試用一鍵連線時 DOM 元素空指針錯誤：
+  - 在強制登入環境（`REQUIRE_AUTH="true"`）下，登入卡片預設為 Email 登入元件，DOM 中不存在 `#password` 或 `#private-key` 元素。
+  - 修復 `auth-form.ts` 中 `handleConnectHfChat` 與 `handleConnect` 連線建立後清空密碼與私鑰的邏輯，補上空值防護檢查（null-check），徹底解決 `Cannot set properties of null (setting 'value')` 異常觸發 catch 關閉標籤頁與彈出連線資訊不完整錯誤的問題。
+- 最佳化登入與連線頁面 UI 字體與版面易讀性：
+  - 提升登入卡片主體最小字體至 12pt (16px / `text-base`)，卡片最大寬度由 `max-w-md` 適度拓寬至 `max-w-lg`。
+  - 將主機、連接埠、使用者名稱、密碼、OTP、救援碼等所有輸入框提升為 16px (12pt)，徹底避免小字體造成的閱讀與輸入疲勞；輸入框標籤提升為 14px (`text-sm font-bold`)。
+  - 一鍵直連 Hugging Face 體驗卡片（`quick-trial-card`）文字、圖示與按鈕尺寸放大，文案自然換行不截斷，大幅提升點擊體驗與可讀性。
+
 ## 2026-09-23
 
 ### Added

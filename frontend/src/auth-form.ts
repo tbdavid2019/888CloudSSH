@@ -213,7 +213,7 @@ export class ConnectionForm {
 
     if (this.config?.authRequired) {
       titleContainer.innerHTML = `
-        <span class="text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.loginTitle">登入工作區</span>
+        <span class="text-sm font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.loginTitle">登入工作區</span>
       `;
       translateDocument(titleContainer);
       return;
@@ -222,8 +222,8 @@ export class ConnectionForm {
     if (this.config?.emailAuthEnabled) {
       titleContainer.innerHTML = `
         <div class="flex gap-2">
-          <button type="button" id="auth-mode-login-tab" class="auth-tab ${this.activeMode === 'login' ? 'auth-tab-active' : ''} px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.loginTab">工作區登入</button>
-          <button type="button" id="auth-mode-direct-tab" class="auth-tab ${this.activeMode === 'direct' ? 'auth-tab-active' : ''} px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.directTab">匿名連線</button>
+          <button type="button" id="auth-mode-login-tab" class="auth-tab ${this.activeMode === 'login' ? 'auth-tab-active' : ''} px-3 py-1.5 text-xs sm:text-sm font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.loginTab">工作區登入</button>
+          <button type="button" id="auth-mode-direct-tab" class="auth-tab ${this.activeMode === 'direct' ? 'auth-tab-active' : ''} px-3 py-1.5 text-xs sm:text-sm font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="auth.directTab">匿名連線</button>
         </div>
       `;
       translateDocument(titleContainer);
@@ -237,7 +237,7 @@ export class ConnectionForm {
     }
 
     titleContainer.innerHTML = `
-      <span class="text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.connectionParameters">連線參數</span>
+      <span class="text-sm font-bold tracking-[0.1em] text-[var(--accent-secondary)]" data-i18n="auth.connectionParameters">連線參數</span>
     `;
     translateDocument(titleContainer);
   }
@@ -370,51 +370,51 @@ export class ConnectionForm {
       <form class="space-y-6" id="connection-form">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div class="sm:col-span-3">
-            <label for="host" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2" data-i18n="auth.host">主机地址</label>
+            <label for="host" class="block text-sm font-bold tracking-[0.05em] text-muted mb-2" data-i18n="auth.host">主机地址</label>
             <div class="flex items-center">
-              <span class="text-muted mr-2">&gt;</span>
-               <input id="host" class="terminal-input text-[13px]" placeholder="192.168.1.1 or 2001:db8::1" type="text" required>
+              <span class="text-muted mr-2 font-mono text-base">&gt;</span>
+               <input id="host" class="terminal-input text-base py-2.5 w-full" placeholder="192.168.1.1 or 2001:db8::1" type="text" required>
             </div>
           </div>
           <div class="sm:col-span-1">
-            <label for="port" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2" data-i18n="auth.port">端口</label>
+            <label for="port" class="block text-sm font-bold tracking-[0.05em] text-muted mb-2" data-i18n="auth.port">端口</label>
             <div class="flex items-center">
-              <span class="text-muted mr-2">:</span>
-              <input id="port" class="terminal-input text-[13px]" placeholder="22" type="number" inputmode="numeric" min="1" max="65535" step="1" value="22" required>
+              <span class="text-muted mr-2 font-mono text-base">:</span>
+              <input id="port" class="terminal-input text-base py-2.5 w-full" placeholder="22" type="number" inputmode="numeric" min="1" max="65535" step="1" value="22" required>
             </div>
           </div>
         </div>
         <div>
-          <label for="username" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2">
+          <label for="username" class="block text-sm font-bold tracking-[0.05em] text-muted mb-2">
             <span data-i18n="auth.user">用户名</span>
-            <span class="text-[9px] opacity-60 ml-1" data-i18n="common.optional">可选</span>
+            <span class="text-xs opacity-60 ml-1" data-i18n="common.optional">可选</span>
           </label>
           <div class="flex items-center">
-            <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">person</span>
-            <input id="username" class="terminal-input text-[13px]" placeholder="admin" type="text">
+            <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">person</span>
+            <input id="username" class="terminal-input text-base py-2.5 w-full" placeholder="admin" type="text">
           </div>
         </div>
         <div>
-          <label class="block text-xs font-bold tracking-[0.1em] text-muted mb-2" data-i18n="auth.method">认证方式</label>
+          <label class="block text-sm font-bold tracking-[0.05em] text-muted mb-2" data-i18n="auth.method">认证方式</label>
           <div class="flex gap-2 mb-3">
-            <button type="button" id="auth-tab-password" class="auth-tab auth-tab-active px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="common.password">密码</button>
-            <button type="button" id="auth-tab-key" class="auth-tab px-3 py-1 text-[11px] font-bold tracking-[0.1em] cursor-pointer transition-all" data-i18n="common.privateKey">私钥</button>
+            <button type="button" id="auth-tab-password" class="auth-tab auth-tab-active px-3.5 py-1.5 text-xs sm:text-sm font-bold tracking-[0.05em] cursor-pointer transition-all" data-i18n="common.password">密码</button>
+            <button type="button" id="auth-tab-key" class="auth-tab px-3.5 py-1.5 text-xs sm:text-sm font-bold tracking-[0.05em] cursor-pointer transition-all" data-i18n="common.privateKey">私钥</button>
           </div>
           <div id="auth-password-section">
             <div class="flex items-center">
-              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 16px;">key</span>
-              <input id="password" class="terminal-input text-[13px]" placeholder="••••••••" type="password" data-i18n-aria-label="common.password" aria-label="密码">
+              <span class="material-symbols-outlined text-muted mr-2" style="font-size: 18px;">key</span>
+              <input id="password" class="terminal-input text-base py-2.5 w-full" placeholder="••••••••" type="password" data-i18n-aria-label="common.password" aria-label="密码">
             </div>
           </div>
           <div id="auth-key-section" style="display:none;">
-            <textarea id="private-key" class="terminal-input text-[11px] w-full" rows="5" data-i18n-placeholder="auth.keyPlaceholder" data-i18n-aria-label="common.privateKey" aria-label="私钥" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...粘贴私钥内容...&#10;-----END OPENSSH PRIVATE KEY-----" style="resize:vertical;border:1px solid var(--border-strong);padding:8px;"></textarea>
+            <textarea id="private-key" class="terminal-input text-sm font-mono w-full" rows="5" data-i18n-placeholder="auth.keyPlaceholder" data-i18n-aria-label="common.privateKey" aria-label="私钥" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...粘贴私钥内容...&#10;-----END OPENSSH PRIVATE KEY-----" style="resize:vertical;border:1px solid var(--border-strong);padding:8px;"></textarea>
             <div class="flex items-center gap-2 mt-2">
-              <label for="private-key-file" class="text-[11px] text-muted hover:text-primary cursor-pointer flex items-center gap-1 border border-dim px-2 py-1 hover:border-[var(--accent)] transition-all">
-                <span class="material-symbols-outlined" style="font-size: 14px;">upload_file</span>
+              <label for="private-key-file" class="text-xs sm:text-sm text-muted hover:text-primary cursor-pointer flex items-center gap-1.5 border border-dim px-2.5 py-1.5 hover:border-[var(--accent)] transition-all">
+                <span class="material-symbols-outlined" style="font-size: 16px;">upload_file</span>
                 <span data-i18n="auth.chooseKeyFile">选择密钥文件</span>
               </label>
               <input type="file" id="private-key-file" accept=".pem,.key,.txt,.pub" class="hidden">
-              <span id="file-name" class="text-[10px] text-muted truncate"></span>
+              <span id="file-name" class="text-xs text-muted truncate"></span>
             </div>
           </div>
         </div>
@@ -422,30 +422,30 @@ export class ConnectionForm {
           <div id="turnstile-widget" class="flex justify-center"></div>
         </div>
         <div>
-          <label for="anon-region" class="block text-xs font-bold tracking-[0.1em] text-muted mb-2"><span data-i18n="auth.regionHint">连接区域</span> <span class="text-[9px] opacity-60" data-i18n="auth.regionOptional">可选；自动模式由 Cloudflare 调度</span></label>
-          <select id="anon-region" class="terminal-input text-[13px] cursor-pointer" style="border:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);padding:6px 8px;">
+          <label for="anon-region" class="block text-sm font-bold tracking-[0.05em] text-muted mb-2"><span data-i18n="auth.regionHint">连接区域</span> <span class="text-xs opacity-60" data-i18n="auth.regionOptional">可选；自动模式由 Cloudflare 调度</span></label>
+          <select id="anon-region" class="terminal-input text-base cursor-pointer py-2 px-3 w-full" style="border:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);">
             <option value="">自动</option>
           </select>
         </div>
         <div class="flex items-center gap-2 mt-2">
           <input type="checkbox" id="remember-me" class="accent-[var(--accent)] w-4 h-4 cursor-pointer">
-          <label for="remember-me" class="text-xs text-muted cursor-pointer select-none" data-i18n="auth.remember">记住连接信息</label>
+          <label for="remember-me" class="text-sm text-muted cursor-pointer select-none" data-i18n="auth.remember">记住连接信息</label>
         </div>
         <div class="pt-4">
-          <button id="connect-btn" class="connect-btn w-full py-3 px-4 text-xs font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2" type="submit">
-            <span class="material-symbols-outlined" style="font-size: 18px;">power_settings_new</span>
+          <button id="connect-btn" class="connect-btn w-full py-3.5 px-4 text-sm sm:text-base font-bold tracking-[0.1em] uppercase flex items-center justify-center gap-2" type="submit">
+            <span class="material-symbols-outlined" style="font-size: 20px;">power_settings_new</span>
             <span data-i18n="auth.execute">建立连接</span>
           </button>
         </div>
         <div class="flex justify-between items-center mt-4">
-          <span id="status-text" class="text-[13px] text-muted flex items-center gap-1">
-            <span class="w-2 h-2 bg-surface-dot inline-block"></span> <span data-i18n="auth.statusOffline">状态：离线</span>
+          <span id="status-text" class="text-sm text-muted flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 bg-surface-dot inline-block"></span> <span data-i18n="auth.statusOffline">状态：离线</span>
           </span>
           <span id="github-login-placeholder"></span>
         </div>
         <!-- Recent Connections Section -->
         <div id="recent-connections-section" class="mt-6 pt-4 border-t border-dim hidden">
-          <label class="block text-xs font-bold tracking-[0.1em] text-[var(--accent-secondary)] mb-3" data-i18n="auth.recent">最近连接</label>
+          <label class="block text-sm font-bold tracking-[0.1em] text-[var(--accent-secondary)] mb-3" data-i18n="auth.recent">最近连接</label>
           <div id="recent-connections-list" class="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1"></div>
         </div>
       </form>
@@ -731,9 +731,11 @@ export class ConnectionForm {
         expectedFingerprint: expectedFingerprint || undefined,
       });
 
-      // 连接成功后清空敏感凭据字段，避免返回匿名连接页时残留
-      (document.getElementById('password') as HTMLInputElement).value = '';
-      (document.getElementById('private-key') as HTMLTextAreaElement).value = '';
+      // 连接成功后清空敏感凭据字段（若存在），避免返回匿名连接页时残留
+      const pwInput = document.getElementById('password') as HTMLInputElement | null;
+      if (pwInput) pwInput.value = '';
+      const keyInput = document.getElementById('private-key') as HTMLTextAreaElement | null;
+      if (keyInput) keyInput.value = '';
     } catch (err) {
       tm.closeTab(tab.id);
       const statusText = document.getElementById('status-text');
@@ -897,8 +899,10 @@ export class ConnectionForm {
       });
 
       // 连接成功后清空敏感凭据字段，避免返回匿名连接页时密码/私钥残留（安全）
-      (document.getElementById('password') as HTMLInputElement).value = '';
-      (document.getElementById('private-key') as HTMLTextAreaElement).value = '';
+      const pwInput = document.getElementById('password') as HTMLInputElement | null;
+      if (pwInput) pwInput.value = '';
+      const keyInput = document.getElementById('private-key') as HTMLTextAreaElement | null;
+      if (keyInput) keyInput.value = '';
     } catch {
       // 连接失败时关闭该标签
       tm.closeTab(tab.id);
