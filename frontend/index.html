@@ -131,6 +131,54 @@
                 >
               </div>
             </div>
+            <!-- Hugging Face AI Instant Demo Banner -->
+            <div
+              id="quick-trial-card"
+              class="mb-6 p-3.5 border border-[var(--accent)]/30 bg-[var(--accent)]/5 hover:border-[var(--accent)]/60 transition-all relative overflow-hidden"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div
+                    class="w-8 h-8 rounded shrink-0 bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center text-base select-none"
+                    aria-hidden="true"
+                  >
+                    🤗
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-xs font-bold tracking-wider text-on-surface"
+                        data-i18n="auth.hfChatTitle"
+                        >Hugging Face AI</span
+                      >
+                      <span
+                        class="text-[9px] font-mono uppercase px-1.5 py-0.2 border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10"
+                        data-i18n="auth.hfChatFreeBadge"
+                        >免登入</span
+                      >
+                    </div>
+                    <div
+                      class="text-[11px] text-muted truncate mt-0.5"
+                      data-i18n="auth.hfChatTrialDesc"
+                    >
+                      免填帳號密碼，一鍵直連 chat.hf.co 體驗 AI 終端
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="quick-hf-chat-btn"
+                  class="connect-btn shrink-0 px-3 py-1.5 text-xs font-bold tracking-[0.1em] uppercase flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-i18n-aria-label="auth.hfChatTrialAction"
+                  aria-label="立即體驗"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px;" aria-hidden="true"
+                    >bolt</span
+                  >
+                  <span data-i18n="auth.hfChatTrialAction">立即體驗</span>
+                </button>
+              </div>
+            </div>
             <div id="connection-form-container"></div>
           </div>
           <div

@@ -6,6 +6,13 @@
 
 ### Added
 
+- 於登入與連線入口處新增「Hugging Face Chat 免登入一鍵體驗」卡片（`quick-trial-card` / `quick-hf-chat-btn`）：
+  - 登入入口一鍵直連：位於登入介面卡片最上方（全面相容 Email OTP、Passkey、GitHub 登入或匿名連線等模式），任何訪客皆可免登入、免填帳號密碼，一鍵直連 `chat.hf.co:22` 即時體驗 Hugging Face AI 終端。
+  - 後端試用授權與白名單安全防護：
+    - `/api/ssh` 支援 `trial=chat.hf.co` 試用標記：即使在強制要求登入（`REQUIRE_AUTH` / `REQUIRE_GITHUB_AUTH`）的環境中，仍安全放行對 `chat.hf.co` 的試用連線。
+    - `SSHSessionDO` 透過 `x-ssh-trial` 標頭實施嚴格目標主機校驗，若試用連線嘗試存取非 `chat.hf.co` 主機立即回傳 `1008 Forbidden` 並關閉連線，杜絕任何繞過登入存取內部或私有主機的風險。
+  - 完整多國語系適配：繁體中文、簡體中文與英文同步提供 `auth.hfChatTitle`、`auth.hfChatFreeBadge`、`auth.hfChatTrialDesc` 與 `auth.hfChatTrialAction`。
+  - 測試案例覆蓋：新增前端體驗卡片元件與點擊直連邏輯單元測試，以及後端強制登入模式下試用穿透與非法目標主機阻斷的安全性測試。
 - 支援匿名與免密 SSH 連線（如 Hugging Face 終端 `ssh chat.hf.co` 等公共服務）：
   - 前端連接介面（`auth-form.ts`）：
     - 主機位址欄位支援智慧指令解析（`parseSSHDestination`）：自動解析並相容 `ssh [user@]host [-p port]`、`user@host`、`host:port` 及 `[ipv6]:port`，自動填入主機、連接埠與使用者名稱。

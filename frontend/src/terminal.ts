@@ -966,6 +966,9 @@ export class SSHTerminal {
     if (config.locationHint) {
       wsUrl.searchParams.set('region', config.locationHint);
     }
+    if (config.host === 'chat.hf.co') {
+      wsUrl.searchParams.set('trial', 'chat.hf.co');
+    }
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(wsUrl.toString());

@@ -150,11 +150,14 @@ export class ConnectionForm {
       }
     });
     this.checkTurnstileConfig();
+    this.bindQuickHfChatButton();
     onLocaleChange(() => {
       const select = document.getElementById('anon-region') as HTMLSelectElement | null;
       if (select) populateRegionSelect(select, select.value);
       this.renderRecentConnections();
       this.renderModeHeader();
+      const trialCard = document.getElementById('quick-trial-card');
+      if (trialCard) translateDocument(trialCard);
     });
   }
 
@@ -666,6 +669,86 @@ export class ConnectionForm {
     // 默认自动填入最近使用的一条（即第一条）
     if (recent.length > 0) {
       this.fillConnection(recent[0]);
+    }
+  }
+
+  private bindQuickHfChatButton(): void {
+    const btn = document.getElementById('quick-hf-chat-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      void this.handleConnectHfChat();
+    });
+  }
+
+  public async handleConnectHfChat(): Promise<void> {
+    const host = 'chat.hf.co';
+    const port = 22;
+
+    // Check Turnstile if enabled
+    if (this.turnstileEnabled && !this.turnstileVerified) {
+      notify(t('auth.turnstileRequired'), {
+        title: t('auth.verificationRequired'),
+        variant: 'warning',
+      });
+      const turnstileContainer =
+        document.getElementById('turnstile-container') ||
+        document.getElementById('email-turnstile-container');
+      if (turnstileContainer) {
+        turnstileContainer.style.display = 'block';
+        turnstileContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    const btn = document.getElementById('quick-hf-chat-btn') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+    }
+
+    const tm = this.options.getTabManager();
+    const displayLabel = host;
+
+    // 切换到终端视图
+    document.getElementById('auth-section')!.classList.add('hidden');
+    document.getElementById('terminal-section')!.classList.remove('hidden');
+    document.getElementById('terminal-section')!.classList.add('flex');
+    document.body.classList.add('terminal-active');
+
+    const tab = tm.createTab(displayLabel, { host, port });
+    const terminal = tab.terminal;
+
+    terminal.mount();
+
+    try {
+      const expectedFingerprint = await loadKnownFingerprint(host, port);
+
+      await terminal.connect({
+        host,
+        port,
+        username: '',
+        password: '',
+        authMethod: 'password',
+        expectedFingerprint: expectedFingerprint || undefined,
+      });
+
+      // 连接成功后清空敏感凭据字段，避免返回匿名连接页时残留
+      (document.getElementById('password') as HTMLInputElement).value = '';
+      (document.getElementById('private-key') as HTMLTextAreaElement).value = '';
+    } catch (err) {
+      tm.closeTab(tab.id);
+      const statusText = document.getElementById('status-text');
+      if (statusText) {
+        statusText.innerHTML =
+          `<span class="w-2 h-2 bg-surface-dot inline-block"></span> ${t('auth.statusOffline')}`;
+      }
+      notify(err instanceof Error ? err.message : t('terminal.wsFailed'), {
+        title: t('auth.incompleteConnection'),
+        variant: 'danger',
+      });
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+      }
     }
   }
 

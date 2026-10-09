@@ -309,6 +309,26 @@ describe('安全 — 强制 GitHub 登录模式', () => {
     expect(sshSessionStub.fetch).not.toHaveBeenCalled();
   });
 
+  it('强制登录模式下允许 chat.hf.co 试用连接穿透并携带 x-ssh-trial 头部', async () => {
+    const worker = await loadWorker();
+    let forwardedRequest: Request | null = null;
+    const sshSessionStub = makeDOStub((req) => {
+      forwardedRequest = req;
+      return new Response('forwarded');
+    });
+    const env = makeEnv({ REQUIRE_GITHUB_AUTH: 'true', sshSessionStub });
+    const req = makeRequest('/api/ssh?trial=chat.hf.co', {
+      headers: { Upgrade: 'websocket', Origin: 'https://cloudssh.test' },
+    });
+
+    const res = await worker.fetch(req, env);
+
+    expect(res.status).toBe(200);
+    expect(sshSessionStub.fetch).toHaveBeenCalledOnce();
+    expect(forwardedRequest).not.toBeNull();
+    expect((forwardedRequest as any).headers.get('x-ssh-trial')).toBe('chat.hf.co');
+  });
+
   it('强制登录时允许白名单内的有效 session 建立 SSH WebSocket', async () => {
     const worker = await loadWorker();
     const userDbStub = makeDOStub(() =>

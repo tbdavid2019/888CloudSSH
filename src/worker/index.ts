@@ -1130,8 +1130,9 @@ async function handleSSHConnection(request: Request, env: Env): Promise<Response
     return new Response('Forbidden', { status: 403 });
   }
 
+  const isChatHfTrial = url.searchParams.get('trial') === 'chat.hf.co';
   const authenticatedUser = await getAuthenticatedUser(request, env);
-  if (isAuthRequired(env) && !authenticatedUser) {
+  if (isAuthRequired(env) && !authenticatedUser && !isChatHfTrial) {
     return Response.json({ error: 'Authentication required' }, { status: 401 });
   }
 
@@ -1155,6 +1156,9 @@ async function handleSSHConnection(request: Request, env: Env): Promise<Response
   headers.delete('x-authenticated-instance-id');
   headers.delete('x-authenticated-account-id');
   headers.delete('x-authenticated-github-id');
+  if (isChatHfTrial) {
+    headers.set('x-ssh-trial', 'chat.hf.co');
+  }
 
   if (authenticatedUser) {
     headers.set('x-authenticated-user-id', String(authenticatedUser.id));

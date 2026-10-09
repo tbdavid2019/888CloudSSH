@@ -105,6 +105,7 @@ export class SSHSessionDO {
     WebSocket,
     { userId?: string; instanceId?: string; accountId?: string; githubId?: string }
   > = new Map();
+  private pendingTrials: Map<WebSocket, string> = new Map();
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -203,6 +204,11 @@ export class SSHSessionDO {
         accountId: authAccountId || undefined,
         githubId: authGithubId || undefined,
       });
+    }
+
+    const trial = request.headers.get('x-ssh-trial');
+    if (trial) {
+      this.pendingTrials.set(server, trial);
     }
 
     this.state.acceptWebSocket(server);
@@ -345,6 +351,14 @@ export class SSHSessionDO {
         return;
       }
 
+      const trial = this.pendingTrials.get(ws);
+      this.pendingTrials.delete(ws);
+      if (trial === 'chat.hf.co' && config.host !== 'chat.hf.co') {
+        ws.send(JSON.stringify({ type: 'error', message: 'Forbidden trial host' }));
+        ws.close(1008, 'Forbidden trial host');
+        return;
+      }
+
       const pendingSessionName = this.pendingSessionNames.get(ws);
       await this.initSSHSession(ws, config, undefined, pendingSessionName);
     } catch (e) {
@@ -431,6 +445,7 @@ export class SSHSessionDO {
     this.pendingSessionNames.delete(ws);
     this.pendingDevicePubKeys.delete(ws);
     this.pendingAuthUsers.delete(ws);
+    this.pendingTrials.delete(ws);
   }
 
   async webSocketError(ws: WebSocket, error: unknown): Promise<void> {

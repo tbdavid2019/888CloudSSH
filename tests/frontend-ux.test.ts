@@ -210,6 +210,26 @@ describe('连接表单提交与端口校验', () => {
     expect(authSource).not.toMatch(/id="username"[^>]*required/);
     expect(authSource).not.toContain("this.authMode === 'password' && !password");
   });
+
+  it('登录入口提供 Hugging Face Chat 免登入一键体验入口并直连 chat.hf.co:22', () => {
+    const htmlSource = readFileSync(
+      new URL('../frontend/index.html', import.meta.url),
+      'utf8'
+    );
+    expect(htmlSource).toContain('id="quick-trial-card"');
+    expect(htmlSource).toContain('id="quick-hf-chat-btn"');
+    expect(htmlSource).toContain('data-i18n="auth.hfChatTitle"');
+    expect(htmlSource).toContain('data-i18n="auth.hfChatTrialAction"');
+
+    const authSource = readFileSync(
+      new URL('../frontend/src/auth-form.ts', import.meta.url),
+      'utf8'
+    );
+    expect(authSource).toContain("document.getElementById('quick-hf-chat-btn')");
+    expect(authSource).toContain("const host = 'chat.hf.co';");
+    expect(authSource).toContain('const port = 22;');
+    expect(authSource).toContain("tm.createTab(displayLabel, { host, port })");
+  });
 });
 
 describe('Agent 危险确认交互', () => {
