@@ -28,11 +28,27 @@
   - 附上登入頁試用入口（`quick-trial-login-zh.png`、`quick-trial-login-en.png`）與連線終端（`quick-trial-terminal.png`）高解析實機截圖與視覺說明。
   - 修復試用卡片標題與免登入標籤在各語系下的折行問題，加入 `whitespace-nowrap` 確保各語系排版美觀工整。
 
+- 實現獨立自定義終端滾動條組件（`TerminalScrollbar` / `frontend/src/terminal-scrollbar.ts`）：
+  - 專用 DOM 滾動條架構：徹底告別 xterm.js 依賴瀏覽器原生 DOM 視口滾動條在 macOS 自動隱藏消失或全螢幕 TUI 應用中無 scrollHeight 的困境。在終端區域右側常駐掛載自定義主題滾動條容器（`terminal-scrollbar`）。
+  - 普通歷史緩衝區（Normal Buffer）完整交互：
+    - 精確比例滑塊：動態計算 `rows / totalLines` 映射滑塊高度，以及 `viewportY / baseY` 映射滑塊位置，即時反映當前視口在 10,000 行歷史中的所在位置。
+    - 指針拖曳平滑導航：支援滑鼠與觸控拖動滑塊（`pointerdown`/`pointermove`/`pointerup`/`lostpointercapture`），平滑定位至歷史任意行。
+    - 快速跳頁：點擊滑塊上方或下方軌道區域直接向上或向下翻頁（`scrollPages(±1)`）。
+    - 頂部/底部微調按鈕：滾動條頂部設有 `▲`（`terminal-scrollbar-btn-up`）與底部 `▼`（`terminal-scrollbar-btn-down`）按鈕，點擊平滑半屏步進滾動。
+  - 全螢幕 TUI / 對話式應用（Alternate Buffer / `chat.hf.co`）專屬輔助：
+    - 在備用緩衝區或直連 `chat.hf.co` 時自動切換為 `alt-mode` 醒目樣式，居中顯示雙向翻頁指示膠囊。
+    - 點擊頂部 `▲` 按鈕或拖動向上發送 `PageUp`（`\x1b[5~`）；點擊底部 `▼` 按鈕或拖動向下發送 `PageDown`（`\x1b[6~`）。
+  - 主題深度融合與手勢防護：完全契合 CloudSSH 四套主題系統，使用 `--accent`、`--scrollbar-track`、`--scrollbar-thumb` 與 `--scrollbar-thumb-hover` CSS 變數；添加 `touch-action: none` 防止行動端與觸控板原生手勢干擾。
+  - 多國語系與完整生命週期：提供 zh-CN、zh-TW、en-US 的 `terminal.scrollUp`、`terminal.scrollDown`、`terminal.scrollToTop`、`terminal.scrollToBottom` 等按鈕與提示詞條；監聽 `onBufferChange` 即時感知緩衝模式切換，並在 `disconnect()` 與 `dispose()` 中完整解綁釋放。
+
 ### Fixed
 
 - 修復 Mac 觸控板雙指與滑鼠滾輪滾動終端歷史輸出問題（像 Ghostty/原生終端一樣平滑操作）：
   - 核心問題診斷：xterm.js 6.0 內部滾動處理在 macOS 觸控板發出高頻像素級微步事件（`deltaMode: 0`, `deltaY` ~ 1px–5px）時，因直接截斷整數（`Math.trunc`）導致幾乎所有微步全被捨棄為 0，且內建動畫與 macOS 觸控板慣性產生衝突，導致長輸出時雙指向上滑動無法看到上方內容。
-  - 支援全螢幕 TUI 交互應用（如 `chat.hf.co` 等在正常緩衝區原位刷新、`baseY=0` 的終端應用）：原先僅在備用緩衝區轉譯按鍵，導致 `chat.hf.co` 在 normal 緩衝且無本地歷史行時調用 `scrollLines()` 空轉吞沒事件；現升級為在無本地歷史行（`baseY=0`）或備用緩衝區時，將滾輪滑動智慧轉譯為上下方向鍵序列（或 Shift/快速滑動時轉譯為 PageUp/PageDown）發送給遠端應用，完美實現 `chat.hf.co` 與 TUI 應用的順暢滾動。
+  - 支援全螢幕 TUI 交互應用（如 `chat.hf.co` 等在備用緩衝區全螢幕運行、輸入行常駐聚焦的應用）：
+    - 關鍵修復：`chat.hf.co` 等對話應用在提示行（`Ask anything...`）聚焦時，上下方向鍵（`ArrowUp` / `ArrowDown`）被 CLI 用作上一條指令歷史，絕不會翻動對話正文；正文滾動必須發送 `PageUp`（`\x1b[5~`）與 `PageDown`（`\x1b[6~`）。
+    - 滾輪邏輯升級：在滾輪事件處理器中優先判定 `isChatHfCo`，當使用者在 `chat.hf.co` 中雙指向上滑動時，累積適當微步（~32px）即發送 `PageUp`（`\x1b[5~`），向下滑動發送 `PageDown`（`\x1b[6~`），完美實現與 Ghostty 完全一致的平滑滾動翻頁！
+    - 主機位址歸一化：支援大小寫與空格歸一化（`.trim().toLowerCase()`），確保各類連接方式均能命中 `chat.hf.co` 特殊適配。
   - 觸控板與滾輪累加平滑滾動（`setupWheelScrolling`）：
     - 透過 `terminal.attachCustomWheelEventHandler` 建立微步累加器（`wheelRemainder`），精準記錄每一次觸控板微步移動，跨事件平滑累計並按字元行高滾動（`scrollLines`），不遺失任何像素。
     - 停頓超時（>150ms）或手勢換向時自動重置累加器；抵達歷史頂端或底部時鉗位累加值，徹底杜絕換向時的滾動死區。
@@ -40,9 +56,6 @@
     - 智慧過濾 macOS 雙指捏合縮放手勢（`ctrlKey=true`），避免 pinch-to-zoom 誤觸終端行滾動。
     - 在備用螢幕緩衝區（alternate buffer，如 `less`、`vim`、`man` 等應用且未開啟遠端滑鼠協議時）自動轉譯為上下方向鍵序列（`\x1b[A` / `\x1b[B` 或 application cursor mode `\x1bOA` / `\x1bOB`），實現像 Ghostty 一樣自然的翻頁體驗。
     - 若遠端應用開啟了滑鼠協議追蹤（如 `tmux` 開啟滑鼠、`htop` 等），放行原生滑鼠協議上報。
-  - 實現終端高可見度主題滾動條（Scrollbar）：
-    - 建立 `has-scrollback` 狀態追蹤（監聽 `onScroll`、`onLineFeed`、`clearBuffer` 等事件），在存在歷史輸出時常駐顯示半透明（55% 透明度）的滾動條軌道與滑塊，滑鼠懸浮或拖動時全亮並微增寬度。
-    - 支援直接以滑鼠拖動滑塊或點擊滾動條軌道任意處跳轉至歷史輸出，徹底擺脫系統原生滾動條消失或不可見的問題。
     - 在無歷史滾動內容（如全新 Shell 或全螢幕 TUI 應用）時自動隱藏原生虛擬滾動條，保持介面簡潔。
   - 終端配置最佳化：將 `smoothScrollDuration` 設為 `0`，停用內部多影格補間動畫以消除與 macOS 系統級滑動慣性的衝突，並將滾輪敏感度設為流暢的基準值。
   - 自動化測試覆蓋：新增 `tests/e2e/terminal-wheel.spec.ts`，涵蓋 Mac 觸控板雙指向上/向下平滑滾動、雙指捏合防誤觸、備用螢幕翻頁轉譯以及 `baseY=0` TUI 應用滾輪轉譯等端到端測試。

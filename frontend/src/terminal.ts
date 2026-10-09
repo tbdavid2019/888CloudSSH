@@ -29,6 +29,7 @@ import { localizedSSHMessage } from './terminal-status';
 import { centerTerminalText } from './terminal-text';
 import { getActiveTerminalTheme, onTerminalThemeChange } from './theme';
 import { confirmAction, notify } from './ui-feedback';
+import { TerminalScrollbar } from './terminal-scrollbar';
 
 const TRZSZ_MAX_DATA_CHUNK_SIZE = 2 * 1024 * 1024;
 const NON_RETRIABLE_AUTH_EVENTS = new Set([
@@ -208,6 +209,8 @@ export class SSHTerminal {
   private shareSessionEndedByServer = false;
   /** 分享会话是否具备断线恢复资格（未绑定设备身份的环境为 false）。 */
   private shareResumeSupported = true;
+  private scrollbar: TerminalScrollbar | null = null;
+  private targetHost: string | null = null;
   private readonly contextMenuPasteListener = async (event: MouseEvent): Promise<void> => {
     if (window.matchMedia?.('(pointer: coarse)').matches) return;
     event.preventDefault();
@@ -345,6 +348,9 @@ export class SSHTerminal {
         this.updateScrollbackState();
       }),
       this.terminal.onLineFeed(() => {
+        this.updateScrollbackState();
+      }),
+      this.terminal.buffer.onBufferChange(() => {
         this.updateScrollbackState();
       })
     );
@@ -745,10 +751,27 @@ export class SSHTerminal {
       this.wheelRemainder += delta;
 
       const buffer = this.terminal.buffer.active;
+      const isAltBuffer = buffer.type === 'alternate';
       const hasScrollback = buffer.baseY > 0;
+      const isChatHfCo = this.targetHost === 'chat.hf.co';
 
-      // 1. 若当前在 normal 缓冲区且已有滚动历史行（baseY > 0），按历史行平滑滚动
-      if (buffer.type === 'normal' && hasScrollback) {
+      // 1. 若处于 chat.hf.co 等全屏交互对话应用：
+      // chat.hf.co 明确使用 PageUp / PageDown 翻滚对话内容（上下箭头仅为输入行历史，无法滚动正文）
+      if (isChatHfCo) {
+        const threshold = Math.max(cellHeight * 2, 32);
+        if (Math.abs(this.wheelRemainder) >= threshold) {
+          const isUp = this.wheelRemainder < 0;
+          const seq = mobileTerminalKeySequence(isUp ? 'page_up' : 'page_down', false, null);
+          this.sendInput(seq);
+          this.wheelRemainder = 0;
+        }
+        this.scrollbar?.update();
+        e.preventDefault();
+        return false;
+      }
+
+      // 2. 若当前在 normal 缓冲区且已有滚动历史行（baseY > 0），按历史行平滑滚动
+      if (!isAltBuffer && hasScrollback) {
         // 边界保护：若已在历史最顶端或当前最底端，钳位累加器避免累积过大死区
         if (buffer.viewportY <= 0 && this.wheelRemainder < 0) {
           this.wheelRemainder = Math.max(this.wheelRemainder, -cellHeight);
@@ -761,11 +784,12 @@ export class SSHTerminal {
           this.terminal.scrollLines(linesToScroll);
           this.wheelRemainder -= linesToScroll * cellHeight;
         }
+        this.scrollbar?.update();
         e.preventDefault();
         return false;
       }
 
-      // 2. 若无本地历史行（baseY === 0，如全屏 TUI 交互应用 chat.hf.co/nano）或处于 alternate 备用缓冲（less/vim/man）：
+      // 3. 其他常规 alternate 应用（less/vim/man）或无本地历史行（baseY === 0）：
       // 将滚轮滑动转换为上下光标键或 PageUp/PageDown 发送给远端服务端，实现原生终端（如 Ghostty）一样的平滑滚动/翻页
       const linesToScroll = Math.trunc(this.wheelRemainder / cellHeight);
       if (linesToScroll !== 0) {
@@ -785,6 +809,7 @@ export class SSHTerminal {
         }
         this.wheelRemainder -= linesToScroll * cellHeight;
       }
+      this.scrollbar?.update();
       e.preventDefault();
       return false;
     });
@@ -793,6 +818,7 @@ export class SSHTerminal {
   private updateScrollbackState(): void {
     const hasScrollback = this.terminal.buffer.active.baseY > 0;
     this.container.classList.toggle('has-scrollback', hasScrollback);
+    this.scrollbar?.update();
   }
 
   /** 将选中文字写入剪贴板，并按实际复制结果提供反馈。 */
@@ -814,6 +840,17 @@ export class SSHTerminal {
 
     this.terminal.open(this.container);
     this.mounted = true;
+    this.scrollbar = new TerminalScrollbar({
+      container: this.container,
+      terminal: this.terminal,
+      onSendKey: (key) => {
+        const seq = mobileTerminalKeySequence(key, false, null);
+        this.sendInput(seq);
+      },
+      isAlternateMode: () => {
+        return this.targetHost === 'chat.hf.co' || this.terminal.buffer.active.type === 'alternate';
+      },
+    });
     this.installIOSIMEFallback();
 
     // Load WebGL addon after terminal is opened
@@ -1059,6 +1096,8 @@ export class SSHTerminal {
     this.reconnectWebSocketFactory = null;
     this.canReconnect = true;
     this.sessionReady = false;
+    this.targetHost = config.host?.trim().toLowerCase() ?? null;
+    this.scrollbar?.update();
     if (options.resetDisplay !== false) {
       this.showConnectingBanner();
     }
@@ -1136,6 +1175,8 @@ export class SSHTerminal {
     this.sessionRequiresDeviceSig = false;
     this.canReconnect = Boolean(this.reconnectWebSocketFactory);
     this.sessionReady = false;
+    this.targetHost = hostInfo?.host?.trim().toLowerCase() ?? null;
+    this.scrollbar?.update();
     this.ws = ws;
     ws.binaryType = 'arraybuffer';
     if (options.resetDisplay !== false) {
@@ -1484,12 +1525,14 @@ export class SSHTerminal {
       }
     };
     restoreViewport();
+    this.scrollbar?.update();
     if (this.viewportRestoreFrame !== null) cancelAnimationFrame(this.viewportRestoreFrame);
     this.viewportRestoreFrame = requestAnimationFrame(() => {
       this.viewportRestoreFrame = null;
       // xterm 的自定义滚动视口会在 resize 后下一帧同步 scrollHeight，
       // 再恢复一次可避免初次恢复被旧的滚动范围截断。
       restoreViewport();
+      this.scrollbar?.update();
     });
     return true;
   }
@@ -1957,6 +2000,8 @@ export class SSHTerminal {
     this.sessionRequiresDeviceSig = false;
     this.activeSessionId = null;
     this.activeResumeToken = null;
+    this.targetHost = null;
+    this.scrollbar?.update();
     this.resetTerminalDisplay();
   }
 
@@ -1987,6 +2032,8 @@ export class SSHTerminal {
     this.viewportRestoreFrame = null;
     this.imeTextarea = null;
     this.themeCleanup();
+    this.scrollbar?.dispose();
+    this.scrollbar = null;
     for (const d of this.terminalDisposables) d.dispose();
     this.terminalDisposables = [];
     this.terminal.dispose();

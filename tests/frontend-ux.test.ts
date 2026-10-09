@@ -158,10 +158,10 @@ describe('连接表单提交与端口校验', () => {
     );
     const connectIdx = authSource.lastIndexOf('await terminal.connect(');
     const clearPwIdx = authSource.lastIndexOf(
-      "(document.getElementById('password') as HTMLInputElement).value = ''"
+      "if (pwInput) pwInput.value = ''"
     );
     const clearKeyIdx = authSource.lastIndexOf(
-      "(document.getElementById('private-key') as HTMLTextAreaElement).value = ''"
+      "if (keyInput) keyInput.value = ''"
     );
     expect(connectIdx).toBeGreaterThan(-1);
     // 清空语句必须出现在 terminal.connect 之后（连接成功后才清空）

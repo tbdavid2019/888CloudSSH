@@ -379,54 +379,122 @@ body.terminal-active {
   text-size-adjust: 100%;
 }
 
-/* xterm 6.0 滚动条轨道与滑块主题化与常驻高可见度 */
-.xterm .xterm-scrollable-element > .scrollbar {
-  background: var(--scrollbar-track) !important;
-  width: 10px !important;
-  right: 0 !important;
-  z-index: 10;
-  cursor: pointer;
-  transition: opacity 150ms ease, width 150ms ease;
+/* CloudSSH 自定义终端滚动条（支持 normal 历史滚动与 chat.hf.co/TUI 翻页按钮及拖拽） */
+.terminal-scrollbar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  background: var(--scrollbar-track);
+  opacity: 0;
+  transition: opacity 180ms ease, width 150ms ease, background 150ms ease;
+  pointer-events: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* 具有历史滚动内容时保持常驻半透明可见，悬浮或拖动时全亮 */
-.has-scrollback .xterm .xterm-scrollable-element > .scrollbar,
-.xterm.has-scrollback .xterm-scrollable-element > .scrollbar {
-  opacity: 0.55 !important;
-  pointer-events: auto !important;
+.terminal-scrollbar.visible {
+  opacity: 0.65;
+  pointer-events: auto;
 }
 
-.has-scrollback .xterm .xterm-scrollable-element > .scrollbar:hover,
-.has-scrollback .xterm .xterm-scrollable-element > .scrollbar.visible,
-.xterm.has-scrollback .xterm-scrollable-element > .scrollbar:hover,
-.xterm.has-scrollback .xterm-scrollable-element > .scrollbar.visible {
-  opacity: 1 !important;
-  width: 12px !important;
+.terminal-scrollbar.visible:hover,
+.terminal-scrollbar.dragging {
+  opacity: 1;
+  width: 16px;
+  background: var(--scrollbar-track);
 }
 
-.xterm .xterm-scrollable-element > .scrollbar > .slider {
-  background: var(--scrollbar-thumb) !important;
-  border-radius: 4px;
-  width: 8px !important;
-  margin-left: 1px;
-  min-height: 24px !important;
-  transition: background 120ms ease;
-}
-
-.xterm .xterm-scrollable-element > .scrollbar > .slider:hover,
-.xterm .xterm-scrollable-element > .scrollbar > .slider.active {
-  background: var(--scrollbar-thumb-hover) !important;
-  width: 10px !important;
-  margin-left: 1px;
-}
-
-/* 无历史滚动内容时完全隐藏原生滚动条 */
-:not(.has-scrollback) > .xterm .xterm-scrollable-element > .scrollbar,
-.xterm:not(.has-scrollback) .xterm-scrollable-element > .scrollbar {
+.terminal-scrollbar.hidden-scrollbar {
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
+.terminal-scrollbar-btn {
+  width: 100%;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+  transition: color 120ms ease, background 120ms ease;
+  flex-shrink: 0;
+}
+
+.terminal-scrollbar-btn:hover {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.terminal-scrollbar-btn:active {
+  transform: scale(0.92);
+}
+
+.terminal-scrollbar-track {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  cursor: pointer;
+}
+
+.terminal-scrollbar-thumb {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  min-height: 24px;
+  border-radius: 4px;
+  background: var(--scrollbar-thumb);
+  cursor: grab;
+  touch-action: none;
+  transition: background 120ms ease;
+}
+
+.terminal-scrollbar-thumb:hover,
+.terminal-scrollbar.dragging .terminal-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+  cursor: grabbing;
+}
+
+/* 备用缓冲 / TUI 应用（如 chat.hf.co）：常驻醒目提示，且支持拖动 / 点击翻页 */
+.terminal-scrollbar.alt-mode {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.terminal-scrollbar.alt-mode:hover,
+.terminal-scrollbar.alt-mode.dragging {
+  opacity: 1;
+}
+
+.terminal-scrollbar.alt-mode .terminal-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+  border: 1px solid var(--accent);
+}
+
+.terminal-scrollbar.alt-mode .terminal-scrollbar-thumb::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 8px;
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* xterm 原生视口滚动条保持半透明兜底 */
 .xterm .xterm-viewport::-webkit-scrollbar {
   width: var(--scrollbar-size);
 }

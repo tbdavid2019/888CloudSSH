@@ -250,4 +250,130 @@ test.describe('终端触控板与滚轮平滑滚动', () => {
     expect(result.sentInputs.some((seq) => seq.includes('\x1b[A') || seq.includes('\x1bOA'))).toBe(true);
     expect(result.sentInputs.some((seq) => seq.includes('\x1b[B') || seq.includes('\x1bOB'))).toBe(true);
   });
+
+  test('chat.hf.co 会话在滚轮滑动时发送 PageUp 与 PageDown 翻页序列', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await page.goto('/?lang=zh-CN');
+
+    const result = await page.evaluate(async () => {
+      const terminalModule = await (window as any).eval("import('/src/terminal.ts')");
+      const root = document.createElement('div');
+      root.id = 'terminal-chat-hf-test-root';
+      root.style.position = 'fixed';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.width = '800px';
+      root.style.height = '400px';
+      root.style.zIndex = '9999';
+      document.body.appendChild(root);
+
+      const terminal = new terminalModule.SSHTerminal(root.id);
+      terminal.mount();
+      (terminal as any).targetHost = 'chat.hf.co';
+
+      const sentInputs: string[] = [];
+      terminal.sendInput = (data: string) => {
+        sentInputs.push(data);
+        return true;
+      };
+
+      const screen = root.querySelector('.xterm-screen')!;
+      // 模拟向上滑动（双指滑动超阈值）
+      screen.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: -50,
+          deltaMode: 0,
+        })
+      );
+
+      // 模拟向下滑动
+      screen.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 50,
+          deltaMode: 0,
+        })
+      );
+
+      const hasScrollbar = Boolean(root.querySelector('.terminal-scrollbar'));
+      const isAltModeScrollbar = root.querySelector('.terminal-scrollbar')?.classList.contains('alt-mode');
+      terminal.dispose();
+      root.remove();
+
+      return {
+        sentInputs,
+        hasScrollbar,
+        isAltModeScrollbar,
+      };
+    });
+
+    expect(result.hasScrollbar).toBe(true);
+    expect(result.isAltModeScrollbar).toBe(true);
+    expect(result.sentInputs.some((seq) => seq.includes('\x1b[5~'))).toBe(true);
+    expect(result.sentInputs.some((seq) => seq.includes('\x1b[6~'))).toBe(true);
+  });
+
+  test('自定义终端滚动条（TerminalScrollbar）随历史行展现并响应按钮点击', async ({ page }) => {
+    await mockAnonymousSession(page);
+    await page.goto('/?lang=zh-CN');
+
+    const result = await page.evaluate(async () => {
+      const terminalModule = await (window as any).eval("import('/src/terminal.ts')");
+      const root = document.createElement('div');
+      root.id = 'terminal-scrollbar-ui-root';
+      root.style.position = 'fixed';
+      root.style.left = '0';
+      root.style.top = '0';
+      root.style.width = '800px';
+      root.style.height = '400px';
+      root.style.zIndex = '9999';
+      document.body.appendChild(root);
+
+      const terminal = new terminalModule.SSHTerminal(root.id);
+      terminal.mount();
+      const xterm = terminal.xterm;
+
+      // 写入 80 行
+      const text = Array.from({ length: 80 }, (_, i) => `Scrollbar Test Line #${i}\r\n`).join('');
+      await new Promise<void>((resolve) => xterm.write(text, resolve));
+
+      const scrollbar = root.querySelector('.terminal-scrollbar') as HTMLElement;
+      const upBtn = root.querySelector('.terminal-scrollbar-btn-up') as HTMLButtonElement;
+      const downBtn = root.querySelector('.terminal-scrollbar-btn-down') as HTMLButtonElement;
+      const thumb = root.querySelector('.terminal-scrollbar-thumb') as HTMLElement;
+
+      const initialViewportY = xterm.buffer.active.viewportY;
+      // 点击向上按钮
+      upBtn.click();
+      const afterUpViewportY = xterm.buffer.active.viewportY;
+
+      // 点击向下按钮
+      downBtn.click();
+      const afterDownViewportY = xterm.buffer.active.viewportY;
+
+      const result = {
+        hasScrollbar: Boolean(scrollbar),
+        isVisible: scrollbar?.classList.contains('visible'),
+        hasThumb: Boolean(thumb),
+        initialViewportY,
+        afterUpViewportY,
+        afterDownViewportY,
+      };
+
+      terminal.dispose();
+      root.remove();
+
+      return result;
+    });
+
+    expect(result.hasScrollbar).toBe(true);
+    expect(result.isVisible).toBe(true);
+    expect(result.hasThumb).toBe(true);
+    expect(result.afterUpViewportY).toBeLessThan(result.initialViewportY);
+    expect(result.afterDownViewportY).toBeGreaterThanOrEqual(result.afterUpViewportY);
+  });
 });
+

@@ -379,6 +379,10 @@ export const enUS: Record<keyof typeof zhCN, string> = {
   'terminal.copySuccess': 'Copied',
   'terminal.copyFailed':
     'Could not write to the clipboard. Check browser permissions and make sure the page uses HTTPS.',
+  'terminal.scrollUp': 'Scroll up / Page up (PgUp)',
+  'terminal.scrollDown': 'Scroll down / Page down (PgDn)',
+  'terminal.scrollToTop': 'Scroll to top',
+  'terminal.scrollToBottom': 'Scroll to bottom',
   'terminal.status.versionExchange': 'Exchanging SSH versions…',
   'terminal.status.versionReady': 'SSH version exchange complete',
   'terminal.status.authPublicKey': 'Authenticating with a public key…',
