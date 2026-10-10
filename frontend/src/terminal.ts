@@ -347,7 +347,7 @@ export class SSHTerminal {
       this.terminal.onScroll(() => {
         this.updateScrollbackState();
       }),
-      this.terminal.onLineFeed(() => {
+      this.terminal.onWriteParsed(() => {
         this.updateScrollbackState();
       }),
       this.terminal.buffer.onBufferChange(() => {
@@ -838,6 +838,7 @@ export class SSHTerminal {
       return;
     }
 
+    this.container.classList.add('terminal-with-scrollbar');
     this.terminal.open(this.container);
     this.mounted = true;
     this.scrollbar = new TerminalScrollbar({
@@ -2034,6 +2035,7 @@ export class SSHTerminal {
     this.themeCleanup();
     this.scrollbar?.dispose();
     this.scrollbar = null;
+    this.container.classList.remove('terminal-with-scrollbar', 'has-scrollback');
     for (const d of this.terminalDisposables) d.dispose();
     this.terminalDisposables = [];
     this.terminal.dispose();
