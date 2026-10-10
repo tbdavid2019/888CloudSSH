@@ -25,6 +25,8 @@ export class TerminalScrollbar {
   private dragStartY = 0;
   private dragStartThumbTop = 0;
   private dragAccumulator = 0;
+  private updateFrame: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   private disposables: Array<() => void> = [];
 
@@ -87,6 +89,8 @@ export class TerminalScrollbar {
     this.thumbEl = thumb;
 
     this.setupListeners();
+    this.resizeObserver = new ResizeObserver(() => this.update());
+    this.resizeObserver.observe(this.container);
     this.update();
   }
 
@@ -244,34 +248,41 @@ export class TerminalScrollbar {
     if (!this.rootEl || !this.trackEl || !this.thumbEl) return;
     if (this.dragging) return;
 
+    // Keep visibility current immediately, but measure the track only once per
+    // frame after output parsing and layout have settled.
+    const isAlt = this.isAlt();
+    const visible = isAlt || this.terminal.buffer.active.baseY > 0;
+    this.rootEl.classList.toggle('visible', visible);
+    this.rootEl.classList.toggle('hidden-scrollbar', !visible);
+    this.rootEl.classList.toggle('alt-mode', isAlt);
+    if (!visible || this.updateFrame !== null) return;
+
+    this.updateFrame = requestAnimationFrame(() => {
+      this.updateFrame = null;
+      this.updateGeometry();
+    });
+  }
+
+  private updateGeometry(): void {
+    if (!this.rootEl || !this.trackEl || !this.thumbEl || this.dragging) return;
     const isAlt = this.isAlt();
     const buffer = this.terminal.buffer.active;
-    const hasScrollback = buffer.baseY > 0;
+    const trackHeight = this.trackEl.clientHeight;
+    if (trackHeight <= 0) return;
 
     if (isAlt) {
-      this.rootEl.classList.add('visible', 'alt-mode');
-      this.rootEl.classList.remove('hidden-scrollbar');
-      const trackHeight = this.trackEl.clientHeight;
-      const thumbHeight = 36;
+      const thumbHeight = Math.min(trackHeight, 36);
       const top = Math.max(0, Math.floor((trackHeight - thumbHeight) / 2));
       this.updateThumbPosition(top, thumbHeight);
       this.thumbEl.title = `${t('terminal.scrollUp')} / ${t('terminal.scrollDown')}`;
       return;
     }
 
-    this.rootEl.classList.remove('alt-mode');
-
-    if (!hasScrollback) {
-      this.rootEl.classList.remove('visible');
-      this.rootEl.classList.add('hidden-scrollbar');
-      return;
-    }
-
-    this.rootEl.classList.add('visible');
-    this.rootEl.classList.remove('hidden-scrollbar');
-
-    const trackHeight = this.trackEl.clientHeight;
-    if (trackHeight <= 0) return;
+    if (buffer.baseY <= 0) return;
+    this.thumbEl.removeAttribute('title');
+    this.rootEl.setAttribute('aria-valuemin', '0');
+    this.rootEl.setAttribute('aria-valuemax', String(buffer.baseY));
+    this.rootEl.setAttribute('aria-valuenow', String(buffer.viewportY));
 
     const rows = this.terminal.rows;
     const totalLines = buffer.baseY + rows;
@@ -295,6 +306,10 @@ export class TerminalScrollbar {
   }
 
   public dispose(): void {
+    if (this.updateFrame !== null) cancelAnimationFrame(this.updateFrame);
+    this.updateFrame = null;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     for (const d of this.disposables) d();
     this.disposables = [];
     this.rootEl?.remove();

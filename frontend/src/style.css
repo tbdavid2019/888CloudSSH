@@ -380,12 +380,22 @@ body.terminal-active {
 }
 
 /* CloudSSH 自定义终端滚动条（支持 normal 历史滚动与 chat.hf.co/TUI 翻页按钮及拖拽） */
+.terminal-with-scrollbar .xterm {
+  /* FitAddon already reserves xterm 6's 14px scrollbar; add 4px so our
+     16px track and a small gap never cover the last terminal column. */
+  padding-right: 4px;
+}
+
+.terminal-with-scrollbar .xterm .xterm-scrollable-element > .scrollbar.vertical {
+  display: none;
+}
+
 .terminal-scrollbar {
   position: absolute;
   top: 0;
   bottom: 0;
   right: 0;
-  width: 14px;
+  width: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -395,13 +405,13 @@ body.terminal-active {
   touch-action: none;
   background: var(--scrollbar-track);
   opacity: 0;
-  transition: opacity 180ms ease, width 150ms ease, background 150ms ease;
+  transition: opacity 180ms ease, background 150ms ease;
   pointer-events: none;
   border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .terminal-scrollbar.visible {
-  opacity: 0.65;
+  opacity: 1;
   pointer-events: auto;
 }
 
@@ -443,6 +453,7 @@ body.terminal-active {
 
 .terminal-scrollbar-track {
   flex: 1;
+  min-height: 0;
   width: 100%;
   position: relative;
   cursor: pointer;
@@ -455,6 +466,7 @@ body.terminal-active {
   min-height: 24px;
   border-radius: 4px;
   background: var(--scrollbar-thumb);
+  border: 1px solid var(--scrollbar-thumb-hover);
   cursor: grab;
   touch-action: none;
   transition: background 120ms ease;
@@ -468,7 +480,7 @@ body.terminal-active {
 
 /* 备用缓冲 / TUI 应用（如 chat.hf.co）：常驻醒目提示，且支持拖动 / 点击翻页 */
 .terminal-scrollbar.alt-mode {
-  opacity: 0.75;
+  opacity: 1;
   pointer-events: auto;
 }
 
