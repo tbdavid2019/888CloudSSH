@@ -323,6 +323,32 @@ export class TabManager {
     this.tabsChanged();
   }
 
+  /**
+   * 页面卸载专属静默断开：
+   * 仅主动关闭底层 WebSocket（code 1000）以通知服务端 DO 立即释放资源，
+   * 避免卸载期间执行昂贵的 DOM 移除、重绘及副作用回调；
+   * 每项使用 try...catch 隔离，防止单一会话异常阻断其他会话的正常释放。
+   */
+  disconnectAllForUnload(): void {
+    for (const tab of this.tabs.values()) {
+      try {
+        tab.sftpPanel?.dispose();
+      } catch {
+        /* best-effort cleanup on unload */
+      }
+      try {
+        tab.agentPanel?.dispose();
+      } catch {
+        /* best-effort cleanup on unload */
+      }
+      try {
+        tab.terminal.disconnect();
+      } catch {
+        /* best-effort cleanup on unload */
+      }
+    }
+  }
+
   // ==================== 获取当前活跃标签 ====================
 
   getActiveTab(): TabInfo | null {

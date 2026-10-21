@@ -220,7 +220,7 @@ Required for optional features (configured in `wrangler.toml` or Cloudflare Dash
 - `BASE_URL` - OAuth callback URL
 - `STRICT_HOST_KEY_VERIFY` - Optional; `false` skips host-key signature verification failures (default true, fails closed)
 - `DEBUG_MODE` - Optional; `true` appends debug info to API responses（wrangler.toml `[vars]` 已声明 `DEBUG_MODE`）
-- `IDLE_TIMEOUT` - Optional; user inactivity idle timeout duration (e.g. `30m`, `1h`, `1800`; defaults to `30m`; `0` disables idle timeout)
+- `IDLE_TIMEOUT` - Optional; user inactivity idle timeout duration (e.g. `15m`, `30m`, `1h`, `1800`; defaults to `15m`; `0` disables idle timeout)
 
 > 注意：`Env` 中声明的 `MAX_CONNECTIONS` 属预留变量，当前代码未读取，切勿依赖；`IDLE_TIMEOUT` 现已生效，默认 15 分钟。
 

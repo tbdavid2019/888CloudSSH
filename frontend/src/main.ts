@@ -927,14 +927,16 @@ async function init(): Promise<void> {
   showAuthSection();
 }
 
-// 页面关闭或卸载时主动正常断开所有会话（code 1000），通知 DO 立即销毁会话与释放资源，
-// 避免因异常断开而保留 60 秒的断线重连等待期（消耗无意义的 DO GB-s 额度）。
-window.addEventListener('beforeunload', () => {
-  tabManager?.closeAllTabs();
+// 页面关闭或卸载时主动正常断开所有会话（code 1000），通知 DO 立即销毁会话与释放资源。
+// 仅监听 pagehide（不监听 beforeunload，以完整保留 Firefox 与 Safari 的 BFCache 兼容性）；
+// 在 pageshow (persisted === true) 时强制重载，确保从快取返回时恢复干净终端状态。
+window.addEventListener('pagehide', () => {
+  tabManager?.disconnectAllForUnload();
 });
-window.addEventListener('pagehide', (event) => {
-  if (event.persisted) return;
-  tabManager?.closeAllTabs();
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    window.location.reload();
+  }
 });
 
 // 导出供 auth-form、server-list 和测试套件使用

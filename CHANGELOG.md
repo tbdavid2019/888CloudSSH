@@ -7,7 +7,7 @@
 ### Optimized
 
 - 優化 Durable Object 長連線與閒置資源消耗防護：
-  - 前端頁面關閉主動銷毀（`beforeunload` / `pagehide`）：在瀏覽器分頁關閉或卸載時主動向 WebSocket 發送標準正常關閉幀（code 1000），通知後端 `SSHSessionDO` 立即終結底層 TCP 連線並釋放 DO 實例，跳過無意義的 60 秒斷線保持等待期（`SESSION_GRACE_PERIOD_MS`），大幅消除關閉分頁後的幽靈運行時間與 GB-s 浪費。
+  - 前端頁面卸載靜默斷開（`pagehide` / `disconnectAllForUnload`）：在瀏覽器分頁關閉或卸載時主動向 WebSocket 發送標準正常關閉幀（code 1000），通知後端 `SSHSessionDO` 立即終結底層 TCP 連線並釋放 DO 實例，跳過無意義的 60 秒斷線保持等待期（`SESSION_GRACE_PERIOD_MS`），大幅消除關閉分頁後的幽靈運行時間與 GB-s 浪費；透過 `TabManager.disconnectAllForUnload()` 實施 per-tab 例外隔離並跳過無謂的卸載期 DOM 變更，僅監聽 `pagehide` 且在 `pageshow (persisted === true)` 時強制重載，完整保留 Firefox 與 Safari 的 BFCache 快取相容性。
   - 空閒超時時間減半優化：將預設 `IDLE_TIMEOUT` 由 30 分鐘調整為更合適的 15 分鐘（`15m`），並在 `wrangler.toml` 的環境變數中顯式宣告配置。使用者忘記關閉的掛機會話資源消耗直接降低 50%（從約 230 GB-s 降至 115 GB-s），並在超時前 60 秒於終端提供鍵盤敲擊續期預警。
 
 ## 2026-10-10
