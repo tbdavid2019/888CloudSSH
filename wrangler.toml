@@ -9,6 +9,7 @@ BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
 ALLOWED_EMAILS = "oobwei@gmail.com,ooboob@gmail.com"
 REQUIRE_AUTH = "true"
 RESEND_FROM_EMAIL = "no-reply@vip.david888.com"
+IDLE_TIMEOUT = "15m"
 
 # 构建监视路径：仅源代码变动时触发重新构建
 [build]
@@ -73,6 +74,7 @@ BOOTSTRAP_OWNER_EMAIL = "tbdavid2019@gmail.com"
 ALLOWED_EMAILS = "oobwei@gmail.com,ooboob@gmail.com"
 REQUIRE_AUTH = "true"
 RESEND_FROM_EMAIL = "no-reply@vip.david888.com"
+IDLE_TIMEOUT = "15m"
 
 [[env.test.durable_objects.bindings]]
 name = "SSH_SESSION"

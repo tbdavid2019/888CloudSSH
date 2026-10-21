@@ -7,7 +7,7 @@ import {
 import { SSHSession } from '../../src/worker/ssh-session';
 
 describe('parseIdleTimeout', () => {
-  it('未设置或空值回退到默认 30 分钟', () => {
+  it('未设置或空值回退到默认 15 分钟', () => {
     expect(parseIdleTimeout(undefined)).toBe(DEFAULT_IDLE_TIMEOUT_MS);
     expect(parseIdleTimeout(null)).toBe(DEFAULT_IDLE_TIMEOUT_MS);
     expect(parseIdleTimeout('')).toBe(DEFAULT_IDLE_TIMEOUT_MS);
@@ -51,7 +51,7 @@ describe('parseIdleTimeout', () => {
     expect(parseIdleTimeout('1000ms')).toBe(MIN_IDLE_TIMEOUT_MS);
   });
 
-  it('非法格式或负数安全回退到默认 30 分钟', () => {
+  it('非法格式或负数安全回退到默认 15 分钟', () => {
     expect(parseIdleTimeout('invalid_string')).toBe(DEFAULT_IDLE_TIMEOUT_MS);
     expect(parseIdleTimeout('-30m')).toBe(DEFAULT_IDLE_TIMEOUT_MS);
     expect(parseIdleTimeout('abc123')).toBe(DEFAULT_IDLE_TIMEOUT_MS);

@@ -31,7 +31,7 @@ src/
 │   ├── durable-object.ts  # SSHSessionDO - manages SSH sessions
 │   ├── share-do.ts    # SSHShareDO - one-time capability lifecycle and share-only audit log
 │   ├── ssh-session.ts     # SSH session logic, multi-channel routing, SFTP handling
-│   ├── idle-timeout.ts   # 用户无操作空闲超时解析（IDLE_TIMEOUT 环境变量与默认 30 分钟策略）
+│   ├── idle-timeout.ts   # 用户无操作空闲超时解析（IDLE_TIMEOUT 环境变量与默认 15 分钟策略）
 │   ├── ssh-interactive-auth.ts # RFC 4256 键盘交互认证状态机（挑战/超时/响应组包解耦）
 │   ├── ssh-detached-buffer.ts   # 弱网断线保持 128KB 有界缓冲队列与重连补偿
 │   ├── share-audit-writer.ts    # 分享审计事件投递、防抖刷新与关闭留痕
@@ -222,7 +222,7 @@ Required for optional features (configured in `wrangler.toml` or Cloudflare Dash
 - `DEBUG_MODE` - Optional; `true` appends debug info to API responses（wrangler.toml `[vars]` 已声明 `DEBUG_MODE`）
 - `IDLE_TIMEOUT` - Optional; user inactivity idle timeout duration (e.g. `30m`, `1h`, `1800`; defaults to `30m`; `0` disables idle timeout)
 
-> 注意：`Env` 中声明的 `MAX_CONNECTIONS` 属预留变量，当前代码未读取，切勿依赖；`IDLE_TIMEOUT` 现已生效，默认 30 分钟。
+> 注意：`Env` 中声明的 `MAX_CONNECTIONS` 属预留变量，当前代码未读取，切勿依赖；`IDLE_TIMEOUT` 现已生效，默认 15 分钟。
 
 ## API Routes
 
@@ -365,7 +365,7 @@ ci: CI/CD 变更
 
 35. **AI 模型配置与代理安全（免密拉取与防凭据外带）** - AI 配置弹窗（`frontend/src/ai-config.ts`）使用自定义 Combobox 替代原生 HTML `<datalist>`，彻底根除浏览器默认粗黑倒三角（`::-webkit-calendar-picker-indicator`）及原值前缀过滤导致下拉只显示 1 项的缺陷；支持全量下拉、即时模糊过滤、一键清空重选，文字使用 `text-on-surface`，悬停使用 `hover:bg-surface-variant hover:text-primary`，浮层增加 `!p-0`，完美自适应项目内置主题与外层圆角规范。后端 `POST /api/ai/models` 在未传入 `api_key` 时，仅当请求的 `base_url` 与数据库中已确认绑定的 `base_url` 一致时才允许自动注入已存密钥；若接口地址变更且未提供对应密钥，后端强制拒绝并返回 400（严禁将已存凭证发送至未绑定的第三方地址，杜绝凭据外带 Credential Exfiltration）；入口执行同源 Origin 校验防止 CSRF，异常返回经 `sanitizeAIErrorMessage` 进行敏感 Token/Bearer 脱敏；前端保存成功后立即清空密码输入框，避免明文长期驻留。
 
-36. **用户无操作空闲超时（Inactivity Timeout）** - 为避免挂机会话长时间消耗 Cloudflare Durable Object 的 Duration 每日配额（Free 套餐 13,000 GB-s），`SSHSession` 实现了用户级空闲超时机制，由 `env.IDLE_TIMEOUT` 配置（支持如 `30m`/`1h`，默认 30 分钟，`0` 禁用）。仅真实用户交互（终端键盘输入、窗口 resize、SFTP 文件传输、AI 任务等）会刷新活动时间戳；前端 WebSocket ping 心跳、底层 SSH keepalive 以及远端服务器被动输出（如 `top` 刷屏）绝不重置该计时器。超时后服务端主动以 `session_idle_timeout` 关闭连接（code 1000），前端识别该事件并阻止自动重连。
+36. **用户无操作空闲超时（Inactivity Timeout）** - 为避免挂机会话长时间消耗 Cloudflare Durable Object 的 Duration 每日配额（Free 套餐 13,000 GB-s），`SSHSession` 实现了用户级空闲超时机制，由 `env.IDLE_TIMEOUT` 配置（支持如 `15m`/`30m`/`1h`，默认 15 分钟，`0` 禁用）。仅真实用户交互（终端键盘输入、窗口 resize、SFTP 文件传输、AI 任务等）会刷新活动时间戳；前端 WebSocket ping 心跳、底层 SSH keepalive 以及远端服务器被动输出（如 `top` 刷屏）绝不重置该计时器。超时后服务端主动以 `session_idle_timeout` 关闭连接（code 1000），前端识别该事件并阻止自动重连。
 
 37. **液态分段切换器与抽屉互斥（Liquid Segmented Controls & CSS Hidden 特异性）** - 桌面端终端抽屉（SFTP、自定义命令、AI Agent）整合为液态分段药丸胶囊（`LiquidSegmentedDrawerControl`，`frontend/src/drawer-segmented.ts`），由双边异步物理弹簧引擎驱动；移动端分段条整体隐藏（`.desktop-terminal-action`），由 `#mobile-more-menu` 提供平行的 SFTP / AI Agent 入口，统一通过 `applyDrawerToggle()` 驱动互斥展开与关闭。样式层级规范：由于 `.drawer-segmented-btn` 在 `style.css` 中声明了 `display: inline-flex` 且位于 `@tailwind utilities` 之后，同等特异性 `(0, 1, 0)` 下会覆盖 Tailwind 的 `.hidden`。因此必须保留 `.drawer-segmented-btn.hidden { display: none }`，保证匿名模式下 AI Agent 按钮及一次性分享会话下的自定义命令按钮在视觉上被严格隐藏。控制器层防御：`LiquidSegmentedDrawerControl` 必须检查目标按钮的 `hidden` 状态，对隐藏按钮阻断点击并抑制透镜滑块位移；`main.ts` 中的 `showAuthSection()` 和 `initTerminalTab()` 必须显式维护 `hidden` 状态。抽屉收起的隐含语义：进入连接页（标签栏「+」）、连接新服务器、退出终端视图等导航入口统一经 `main.ts` 的 `closeAllDrawers()` → `TabManager.closeAllDrawers()` 收起 SFTP/Agent 抽屉（两者都是挂在 `document.body` 上的 fixed 覆盖层，不收会盖住服务器列表）；而 `SFTPPanel.hide()` 本身就是「关抽屉即清空队列」，因此在途上传/下载会被中断（远端可能残留半截文件）。这是既定的有意语义，改动该路径时不要假设传输会继续。
 

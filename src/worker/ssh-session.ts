@@ -100,7 +100,7 @@ export interface SSHSessionOptions {
   waitUntil?: (promise: Promise<unknown>) => void;
   /**
    * 可选用户无操作空闲超时（毫秒）。
-   * 未传入时从 env.IDLE_TIMEOUT 解析，默认 30 分钟；0 表示禁用。
+   * 未传入时从 env.IDLE_TIMEOUT 解析，默认 15 分钟；0 表示禁用。
    */
   idleTimeoutMs?: number;
   /** 关联的 UserDB 实例标识（acc_xxx 或 github_id） */

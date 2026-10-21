@@ -927,6 +927,16 @@ async function init(): Promise<void> {
   showAuthSection();
 }
 
+// 页面关闭或卸载时主动正常断开所有会话（code 1000），通知 DO 立即销毁会话与释放资源，
+// 避免因异常断开而保留 60 秒的断线重连等待期（消耗无意义的 DO GB-s 额度）。
+window.addEventListener('beforeunload', () => {
+  tabManager?.closeAllTabs();
+});
+window.addEventListener('pagehide', (event) => {
+  if (event.persisted) return;
+  tabManager?.closeAllTabs();
+});
+
 // 导出供 auth-form、server-list 和测试套件使用
 export {
   getTabManager,

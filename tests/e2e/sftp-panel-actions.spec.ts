@@ -43,8 +43,8 @@ test.describe('桌面视口', () => {
     const layout = await measureActions(page);
 
     expect(layout.labelCount).toBe(7);
-    // 单行 11px 标签高度约 16px；两行 CJK 断行会 ≥32px
-    expect(layout.maxLabelHeight).toBeLessThan(24);
+    // 单行 11px 标签高度约 16px（个别平台渲染到 24px）；两行 CJK 断行会 ≥32px
+    expect(layout.maxLabelHeight).toBeLessThanOrEqual(24);
     expect(layout.maxButtonHeight).toBeLessThan(40);
     expect(layout.overflowX).toBe('auto');
     // 面板宽度 clamp(420px, 40vw, 600px)：1280 视口下应为 512px
@@ -63,7 +63,7 @@ test.describe('移动端视口', () => {
     const layout = await measureActions(page);
 
     expect(layout.labelCount).toBe(7);
-    expect(layout.maxLabelHeight).toBeLessThan(24);
+    expect(layout.maxLabelHeight).toBeLessThanOrEqual(24);
     // 移动端媒体查询给按钮 min-height: 40px 触摸目标
     expect(layout.maxButtonHeight).toBeGreaterThanOrEqual(40);
     expect(layout.maxButtonHeight).toBeLessThan(56);
