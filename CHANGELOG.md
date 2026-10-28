@@ -2,6 +2,13 @@
 
 888CloudSSH 的變更紀錄使用日期，不使用版本號。
 
+## 2026-10-28
+
+### Security
+
+- 更新 DOMPurify、Vite、Vitest 與 coverage-v8 至已修補版本，處理前端 HTML 清理與開發/測試工具鏈警示。
+- 透過 pnpm workspace overrides 將 nanoid、postcss-selector-parser、sharp、source-map-js 與 undici 固定至已修補版本，涵蓋 Tailwind、Wrangler 與 Miniflare 的傳遞依賴。
+
 ## 2026-10-21
 
 ### Optimized

@@ -178,7 +178,7 @@ pnpm run verify
 cd frontend && pnpm install
 ```
 
-> **供应链策略约束**：`pnpm-workspace.yaml` 已启用 `blockExoticSubdeps` / `minimumReleaseAge: 10080`（7 天）/ `trustPolicy: no-downgrade`。frozen-lockfile 部署不受影响；但未来**升级依赖到刚发布（<7 天）的新版本会安装失败**（`minimumReleaseAge` 拦截），需届时再决定放宽或等待版本成熟，勿把该报错当作环境问题排查。
+> **供应链策略约束**：`pnpm-workspace.yaml` 已启用 `blockExoticSubdeps` / `minimumReleaseAge: 10080`（7 天）/ `trustPolicy: no-downgrade`，并透过 `overrides` 固定已确认修补的传递依赖。frozen-lockfile 部署不受影响；但未来**升级依赖到刚发布（<7 天）的新版本会安装失败**（`minimumReleaseAge` 拦截），需届时再决定放宽或等待版本成熟，勿把该报错当成环境问题排查。调整安全覆写前先核对上游修补版本与消费者兼容范围。
 
 ## Critical Build Process
 
